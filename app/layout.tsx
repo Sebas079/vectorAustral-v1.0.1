@@ -3,6 +3,7 @@ import "@/globals.css"
 import type { Metadata } from "next"
 import Footer from "@components/layout/Footer"
 
+
 export const metadata: Metadata = {
   title: "Vector Austral | Soluciones web, apps y automatizaciones",
   description: "Diseñamos páginas, aplicaciones y flujos automatizados para empresas que buscan crecer y operar con mayor eficiencia.",
