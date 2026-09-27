@@ -1,70 +1,125 @@
-import { NextResponse } from 'next/server'
-import { z } from 'zod'
-import crypto from 'crypto'
+import { createHmac } from "node:crypto";
+import { NextResponse } from "next/server";
+import { z } from "zod";
 
-const ContactSchema = z.object({
-  name: z.string().min(1).max(100),
-  email: z.string().email(),
-  message: z.string().min(5).max(2000),
-})
+import { getSubmissionRetryAfter } from "@/lib/security/leadRateLimit";
+import { isRequestOriginAllowed } from "@/lib/security/origin";
+import { getRequestIp } from "@/lib/security/requestIp";
+import {
+  TurnstileUnavailableError,
+  verifyTurnstileToken,
+} from "@/lib/security/turnstile";
+
+const ContactSchema = z.strictObject({
+  name: z.string().trim().min(1).max(100),
+  email: z.string().trim().pipe(z.email()),
+  message: z.string().trim().min(5).max(2000),
+  captchaToken: z.string().min(1).max(2048),
+});
+
+export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  if (!isRequestOriginAllowed(request.headers)) {
+    return NextResponse.json({ error: "Origin not allowed" }, { status: 403 });
+  }
+
+  let body: unknown;
   try {
-    // origin check: ensure requests come from allowed hosts when configured
-    const allowedRaw = process.env.ALLOWED_ORIGINS || ''
-    const allowed = allowedRaw.split(',').map((s) => s.trim()).filter(Boolean)
-    const originHeader = request.headers.get('origin') || request.headers.get('referer') || ''
-    let origin = ''
-    try {
-      if (originHeader) origin = new URL(originHeader).origin
-    } catch (e) {
-      origin = originHeader
-    }
-    if (allowed.length > 0 && origin && !allowed.includes(origin)) {
-      return NextResponse.json({ error: 'Origin not allowed' }, { status: 403 })
-    }
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  }
 
-    const data = await request.json()
+  const parsed = ContactSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  }
 
-    const parse = ContactSchema.safeParse(data)
-    if (!parse.success) {
-      return NextResponse.json({ error: 'Invalid input', details: parse.error.flatten() }, { status: 400 })
-    }
+  const ipAddress = getRequestIp(request.headers);
+  if (!ipAddress) {
+    return NextResponse.json(
+      { error: "Client IP unavailable" },
+      { status: 400 },
+    );
+  }
 
-    const { name, email, message } = parse.data
-
-    const payload = { name, email, message, receivedAt: new Date().toISOString() }
-
-    // If there's a webhook configured, forward the payload (optional)
-    const webhook = process.env.CONTACT_WEBHOOK_URL
-    const webhookSecret = process.env.CONTACT_WEBHOOK_SECRET
-    if (webhook) {
-      try {
-        const bodyString = JSON.stringify(payload)
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-
-        // If a secret is configured, sign the payload with HMAC-SHA256
-        if (webhookSecret) {
-          const sig = crypto.createHmac('sha256', webhookSecret).update(bodyString).digest('hex')
-          headers['x-vector-signature'] = sig
-        }
-
-        await fetch(webhook, {
-          method: 'POST',
-          headers,
-          body: bodyString,
-        })
-      } catch (err) {
-        console.error('Webhook forward failed', err)
-      }
+  try {
+    const verified = await verifyTurnstileToken(
+      parsed.data.captchaToken,
+      ipAddress,
+    );
+    if (!verified) {
+      return NextResponse.json(
+        { error: "Human verification failed" },
+        { status: 400 },
+      );
     }
 
-    // Log submission for now; ready to be extended to DB or external service.
-    console.log('Contact submission:', payload)
+    const retryAfterSeconds = await getSubmissionRetryAfter(ipAddress);
+    if (retryAfterSeconds > 0) {
+      return NextResponse.json(
+        { error: "Rate limited", retryAfterSeconds },
+        {
+          status: 429,
+          headers: { "Retry-After": String(retryAfterSeconds) },
+        },
+      );
+    }
 
-    return NextResponse.json({ ok: true })
-  } catch (err) {
-    console.error(err)
-    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+    const webhook = process.env.CONTACT_WEBHOOK_URL;
+    if (!webhook) {
+      console.error("CONTACT_WEBHOOK_URL is not configured.");
+      return NextResponse.json(
+        { error: "Contact service unavailable" },
+        { status: 503 },
+      );
+    }
+
+    const { captchaToken: _captchaToken, ...contact } = parsed.data;
+    const serializedPayload = JSON.stringify({
+      ...contact,
+      receivedAt: new Date().toISOString(),
+    });
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    const webhookSecret = process.env.CONTACT_WEBHOOK_SECRET;
+    if (webhookSecret) {
+      headers["x-vector-signature"] = createHmac("sha256", webhookSecret)
+        .update(serializedPayload)
+        .digest("hex");
+    }
+
+    const webhookResponse = await fetch(webhook, {
+      method: "POST",
+      headers,
+      body: serializedPayload,
+      signal: AbortSignal.timeout(8_000),
+      cache: "no-store",
+    });
+    if (!webhookResponse.ok) {
+      console.error("Contact webhook responded with a non-success status.");
+      return NextResponse.json(
+        { error: "Contact service unavailable" },
+        { status: 502 },
+      );
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    if (error instanceof TurnstileUnavailableError) {
+      console.error("Turnstile contact verification unavailable:", error);
+      return NextResponse.json(
+        { error: "Human verification unavailable" },
+        { status: 503 },
+      );
+    }
+
+    console.error("Contact submission failed:", error);
+    return NextResponse.json(
+      { error: "Contact service unavailable" },
+      { status: 502 },
+    );
   }
 }

@@ -1,6 +1,7 @@
 # SKILL: Git & GitHub Workflow
 
 ## Estándar de Commits y Control de Cambios
+
 1. **Formato de Mensajes de Commit (Conventional Commits):**
    - `feat: <descripción>` para nuevas características (ej: `feat: agregar hero section`).
    - `fix: <descripción>` para corrección de errores.

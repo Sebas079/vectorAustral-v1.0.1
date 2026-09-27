@@ -1,26 +1,34 @@
-// Import the shared global styles so the app shell uses the same theme everywhere.
-import "@/globals.css"
-import type { Metadata } from "next"
-import Footer from "@components/layout/Footer"
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
 
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
 
 export const metadata: Metadata = {
-  title: "Vector Austral | Soluciones web, apps y automatizaciones",
-  description: "Diseñamos páginas, aplicaciones y flujos automatizados para empresas que buscan crecer y operar con mayor eficiencia.",
-  keywords: ["Vector Austral", "n8n", "automatizaciones", "desarrollo web", "B2B"],
-  openGraph: {
-    title: "Vector Austral | Soluciones web, apps y automatizaciones",
-    description: "Diseñamos páginas, aplicaciones y flujos automatizados para empresas que buscan crecer y operar con mayor eficiencia.",
-  },
-}
+  title: "Vector Austral — Soluciones web, apps y automatización",
+  description:
+    "Vector Austral: desarrollo web moderno, apps Android y automatizaciones con n8n.",
+};
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="es">
-      <body className="min-h-screen flex flex-col">
-        <main className="flex-grow">{children}</main>
-        <Footer />
-      </body>
+    <html
+      lang="es"
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+    >
+      <body className="min-h-full flex flex-col">{children}</body>
     </html>
-  )
+  );
 }
