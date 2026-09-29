@@ -1,57 +1,78 @@
-import { NextResponse } from 'next/server'
-import { z } from 'zod'
-import crypto from 'crypto'
+import { createHmac } from "node:crypto";
+import { NextResponse } from "next/server";
+import { z } from "zod";
 
-const VectorUnoSchema = z.object({
-  userId: z.string().optional(),
-  message: z.string().min(1).max(2000),
-})
+import { isRequestOriginAllowed } from "@/lib/security/origin";
+
+const VectorUnoSchema = z.strictObject({
+  userId: z.string().max(128).optional(),
+  message: z.string().trim().min(1).max(2000),
+});
+
+export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  if (!isRequestOriginAllowed(request.headers)) {
+    return NextResponse.json({ error: "Origin not allowed" }, { status: 403 });
+  }
+
+  let body: unknown;
   try {
-    // origin check: ensure requests come from allowed hosts when configured
-    const allowedRaw = process.env.ALLOWED_ORIGINS || ''
-    const allowed = allowedRaw.split(',').map((s) => s.trim()).filter(Boolean)
-    const originHeader = request.headers.get('origin') || request.headers.get('referer') || ''
-    let origin = ''
-    try {
-      if (originHeader) origin = new URL(originHeader).origin
-    } catch (e) {
-      origin = originHeader
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  }
+
+  const parsed = VectorUnoSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  }
+
+  const webhook = process.env.VECTORUNO_WEBHOOK_URL;
+  if (!webhook) {
+    console.error("VECTORUNO_WEBHOOK_URL is not configured.");
+    return NextResponse.json(
+      { error: "Vector Uno service unavailable" },
+      { status: 503 },
+    );
+  }
+
+  const serializedPayload = JSON.stringify({
+    ...parsed.data,
+    receivedAt: new Date().toISOString(),
+  });
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  const webhookSecret = process.env.VECTORUNO_WEBHOOK_SECRET;
+  if (webhookSecret) {
+    headers["x-vector-signature"] = createHmac("sha256", webhookSecret)
+      .update(serializedPayload)
+      .digest("hex");
+  }
+
+  try {
+    const webhookResponse = await fetch(webhook, {
+      method: "POST",
+      headers,
+      body: serializedPayload,
+      signal: AbortSignal.timeout(8_000),
+      cache: "no-store",
+    });
+    if (!webhookResponse.ok) {
+      console.error("Vector Uno webhook responded with a non-success status.");
+      return NextResponse.json(
+        { error: "Vector Uno service unavailable" },
+        { status: 502 },
+      );
     }
-    if (allowed.length > 0 && origin && !allowed.includes(origin)) {
-      return NextResponse.json({ error: 'Origin not allowed' }, { status: 403 })
-    }
 
-    const data = await request.json()
-    const parsed = VectorUnoSchema.safeParse(data)
-    if (!parsed.success) {
-      return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten() }, { status: 400 })
-    }
-
-    const payload = { ...parsed.data, receivedAt: new Date().toISOString() }
-
-    const webhook = process.env.VECTORUNO_WEBHOOK_URL
-    const webhookSecret = process.env.VECTORUNO_WEBHOOK_SECRET
-    if (webhook) {
-      try {
-        const bodyString = JSON.stringify(payload)
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-        if (webhookSecret) {
-          const sig = crypto.createHmac('sha256', webhookSecret).update(bodyString).digest('hex')
-          headers['x-vector-signature'] = sig
-        }
-        await fetch(webhook, { method: 'POST', headers, body: bodyString })
-      } catch (err) {
-        console.error('VectorUno webhook forward failed', err)
-      }
-    }
-
-    console.log('VectorUno received:', payload)
-
-    return NextResponse.json({ ok: true })
-  } catch (err) {
-    console.error(err)
-    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("Vector Uno webhook request failed:", error);
+    return NextResponse.json(
+      { error: "Vector Uno service unavailable" },
+      { status: 502 },
+    );
   }
 }

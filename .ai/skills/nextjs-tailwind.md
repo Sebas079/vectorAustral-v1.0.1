@@ -1,6 +1,7 @@
 # SKILL: Next.js + Tailwind CSS + Firebase
 
 ## Reglas de Código Frontend
+
 1. **Next.js App Router:**
    - Usa `app/` directory.
    - Declara `'use client'` ÚNICAMENTE cuando el componente requiera interactividad o hooks (`useState`, `useEffect`). Los componentes de presentación deben ser Server Components por defecto.
