@@ -36,6 +36,7 @@ El formulario de contacto debe impedir envíos automatizados, proteger los datos
 - Las credenciales privadas y los secretos de verificación no estarán expuestos al navegador.
 - La interfaz seguirá siendo usable con teclado y tecnologías de asistencia.
 - Los mensajes de validación y error estarán en español.
+- El entorno de CI y producción ejecutará Node.js 22 o superior, según el requisito de Firebase Admin SDK.
 
 ## Casos límite
 

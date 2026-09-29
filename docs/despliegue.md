@@ -7,7 +7,7 @@ Este documento define el despliegue de Vector Austral para el MVP mediante:
 - GitHub como repositorio y control de versiones.
 - GitHub Actions como pipeline de calidad y automatización.
 - Hostinger VPS como entorno de producción.
-- Node.js 20 o superior para ejecutar Next.js.
+- Node.js 22 o superior, requerido por Firebase Admin SDK.
 - PM2 para mantener el proceso activo.
 - Nginx como reverse proxy HTTPS.
 - Firebase/Firestore como persistencia de leads.
@@ -52,7 +52,7 @@ Next.js en localhost:3000
 El servidor debe contar con:
 
 - Ubuntu LTS actualizado.
-- Node.js 20 o superior.
+- Node.js 22 o superior, requerido por Firebase Admin SDK.
 - npm.
 - Git.
 - PM2 instalado globalmente.
