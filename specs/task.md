@@ -214,14 +214,19 @@ Cada tarea usa checkboxes por paso y condición verificable "Hecho cuando".
   - Pasos:
     - [x] Recorrer RF-1 a RF-8 y asociar cobertura
     - [x] Ejecutar pipeline completo local
-    - [ ] Configurar despliegue automático de producción en Vercel o Firebase Hosting
+    - [x] Elegir Vercel como proveedor de producción
+    - [x] Configurar un job de GitHub Actions que despliega a Vercel solo tras pasar calidad y al hacer push a `main`
+    - [ ] Crear el proyecto Vercel y configurar sus variables de producción y los secrets de GitHub
+    - [ ] Verificar un despliegue real y la URL pública
   - Hecho cuando:
     - [x] `npm run lint` está en verde
     - [x] `npm run format` está en verde
     - [x] `npm run test` está en verde
     - [x] `npm run build` está en verde
     - [x] No hay secretos hardcodeados en código, fuentes ni assets
-    - [ ] GitHub Actions despliega automáticamente después del push a `main`
+    - [ ] GitHub Actions despliega automáticamente después del push a `main` y la URL pública pasa la verificación funcional
   - Bloqueo restante:
-    - La elección del proveedor de producción y sus secretos de GitHub todavía no
-      están configurados; no se agregan credenciales ni se inventa un despliegue.
+    - Falta crear/vincular el proyecto Vercel y agregar `VERCEL_TOKEN`,
+      `VERCEL_ORG_ID` y `VERCEL_PROJECT_ID` a los secrets del repositorio.
+      Las variables de aplicación deben configurarse en Vercel para el entorno
+      de producción antes del primer despliegue.

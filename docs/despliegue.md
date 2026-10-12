@@ -1,283 +1,112 @@
-# Despliegue del MVP — GitHub + Hostinger VPS
+# Despliegue del MVP — Vercel
 
-## Objetivo
+## Arquitectura
 
-Este documento define el despliegue de Vector Austral para el MVP mediante:
-
-- GitHub como repositorio y control de versiones.
-- GitHub Actions como pipeline de calidad y automatización.
-- Hostinger VPS como entorno de producción.
-- Node.js 22 o superior, requerido por Firebase Admin SDK.
-- PM2 para mantener el proceso activo.
-- Nginx como reverse proxy HTTPS.
-- Firebase/Firestore como persistencia de leads.
-
-La estrategia inicial prioriza bajo costo, trazabilidad y simplicidad operativa.
-Las releases versionadas y los despliegues sin interrupción quedan reservados
-para Specs 2 y 3.
-
-## Arquitectura de producción
+Los cambios se integran en `main` mediante pull request. GitHub Actions ejecuta
+lint, formato, tests y build; solo si todo pasa, un push a `main` inicia el
+despliegue de producción a Vercel mediante su CLI. Los secretos y las variables
+de la aplicación se guardan fuera del repositorio.
 
 ```text
-Push a main
-    |
-    v
-GitHub Actions
-    |
-    +--> npm ci
-    +--> npm run lint
-    +--> npm run format
-    +--> npm run test
-    +--> npm run build
-    |
-    v
-SSH seguro hacia Hostinger VPS
-    |
-    +--> git pull origin main
-    +--> npm ci
-    +--> npm run build
-    +--> pm2 restart vector-austral
-    |
-    v
-Nginx HTTPS
-    |
-    v
-Next.js en localhost:3000
-    |
-    +--> Firebase/Firestore
+Pull request / push a main
+          |
+          v
+GitHub Actions: calidad (Node.js 22)
+          |
+          +-- error: no despliega
+          |
+          +-- push exitoso a main
+                    |
+                    v
+          Vercel CLI: pull + build + deploy --prod
+                    |
+                    v
+          Vercel HTTPS + Next.js + Firebase/Firestore
 ```
 
-## Requisitos del VPS
+## Preparación de Vercel
 
-El servidor debe contar con:
+1. Crear un proyecto Vercel para este repositorio y mantener `main` como rama
+   de producción. Seleccionar Node.js 22 como versión de runtime.
+2. Configurar las variables de aplicación indicadas abajo en **Project
+   Settings → Environment Variables**, seleccionando Production.
+3. Si el proyecto queda conectado a GitHub, desactivar los despliegues
+   automáticos por integración Git para evitar builds y publicaciones
+   duplicadas. El despliegue productivo lo controla el job de GitHub Actions.
+4. Vincular el proyecto con Vercel CLI desde una copia local autenticada:
 
-- Ubuntu LTS actualizado.
-- Node.js 22 o superior, requerido por Firebase Admin SDK.
-- npm.
-- Git.
-- PM2 instalado globalmente.
-- Nginx.
-- Certbot y certificado SSL activo.
-- Firewall con SSH, HTTP y HTTPS habilitados.
-- Usuario de despliegue sin utilizar `root` para la operación cotidiana.
+   ```bash
+   npx vercel link
+   ```
 
-La aplicación se ubicará inicialmente en:
+   La vinculación genera `.vercel/project.json`, ignorado por Git. Obtener de
+   ese archivo `orgId` y `projectId`; no copiar ni publicar el archivo.
 
-```text
-/var/www/vector-austral
-```
+5. Crear un token de despliegue de Vercel con los permisos necesarios para el
+   proyecto.
 
-El archivo de variables de producción debe permanecer fuera del repositorio:
+## Secrets de GitHub
 
-```text
-/var/www/vector-austral/.env.production
-```
+En **GitHub → Settings → Secrets and variables → Actions**, crear estos
+repository secrets:
 
-## Configuración inicial de la aplicación
+| Secret              | Valor                                 |
+| ------------------- | ------------------------------------- |
+| `VERCEL_TOKEN`      | Token de Vercel                       |
+| `VERCEL_ORG_ID`     | `orgId` de `.vercel/project.json`     |
+| `VERCEL_PROJECT_ID` | `projectId` de `.vercel/project.json` |
 
-En el VPS, la primera instalación debe realizarse de forma manual y controlada:
+El workflow valida que los tres secrets existan antes de llamar a Vercel. No
+agregar sus valores al código, a los logs ni a archivos versionados.
 
-```bash
-cd /var/www
-git clone git@github.com:ORGANIZACION/REPOSITORIO.git vector-austral
-cd vector-austral
-npm ci
-npm run build
-pm2 start npm --name vector-austral -- start
-pm2 save
-pm2 startup
-```
+## Variables de aplicación en Vercel
 
-El comando generado por `pm2 startup` debe ejecutarse con los permisos
-indicados por PM2 para que la aplicación se reinicie después de un reboot.
+Configurar los valores reales en el entorno **Production** del proyecto:
 
-## Variables de entorno
+| Variable                         | Uso                                                                 |
+| -------------------------------- | ------------------------------------------------------------------- |
+| `FIREBASE_SERVICE_ACCOUNT_JSON`  | Credencial privada de Firebase Admin, con acceso mínimo a Firestore |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Clave pública Turnstile registrada para el hostname de producción   |
+| `TURNSTILE_SECRET_KEY`           | Secreto privado Turnstile                                           |
+| `TURNSTILE_HOSTNAME`             | Hostname exacto registrado en Turnstile, sin protocolo ni ruta      |
+| `LEAD_RATE_LIMIT_HMAC_KEY`       | Valor aleatorio de al menos 32 caracteres para seudonimizar IP      |
+| `NEXT_PUBLIC_WHATSAPP_NUMBER`    | Número público de contacto, si se ofrece WhatsApp                   |
+| `NEXT_PUBLIC_CONTACT_EMAIL`      | Email público de contacto                                           |
 
-Las variables reales se configuran directamente en Hostinger dentro de
-`.env.production`. Nunca se suben al repositorio.
+Las variables `CONTACT_WEBHOOK_URL`, `CONTACT_WEBHOOK_SECRET`,
+`VECTORUNO_WEBHOOK_URL`, `VECTORUNO_WEBHOOK_SECRET` y `ALLOWED_ORIGINS` solo
+se configuran si se mantienen activas esas integraciones heredadas. Los
+endpoints correspondientes responden con error explícito cuando el webhook
+requerido no está configurado.
 
-Variables esperadas:
+Las variables `NEXT_PUBLIC_*` se incorporan al bundle durante el build. Si se
+modifican, se debe ejecutar un nuevo despliegue. El formulario no puede
+verificar visitantes ni guardar leads correctamente si faltan la configuración
+de Turnstile o la credencial de Firebase.
 
-```text
-FIREBASE_SERVICE_ACCOUNT_JSON
-NEXT_PUBLIC_TURNSTILE_SITE_KEY
-TURNSTILE_SECRET_KEY
-TURNSTILE_HOSTNAME
-LEAD_RATE_LIMIT_HMAC_KEY
-CONTACT_WEBHOOK_URL
-CONTACT_WEBHOOK_SECRET
-VECTORUNO_WEBHOOK_URL
-VECTORUNO_WEBHOOK_SECRET
-ALLOWED_ORIGINS
-NEXT_PUBLIC_WHATSAPP_NUMBER
-NEXT_PUBLIC_CONTACT_EMAIL
-```
+La plantilla sin secretos está en [.env.example](../.env.example). Las reglas
+de [firestore.rules](../firestore.rules) deben publicarse en el proyecto
+Firebase de producción; las operaciones de leads usan Firebase Admin
+exclusivamente en el servidor.
 
-`FIREBASE_SERVICE_ACCOUNT_JSON` es el JSON completo de una cuenta de servicio
-con acceso mínimo necesario a Firestore. Esta credencial se usa solo en el
-servidor Node.js y nunca debe tener el prefijo `NEXT_PUBLIC_`. La clave privada
-debe permanecer en el archivo `.env.production`, con los saltos de línea
-codificados como `\n` si el panel de Hostinger requiere una sola línea.
+## Flujo y validación
 
-`NEXT_PUBLIC_TURNSTILE_SITE_KEY` es pública y debe corresponder al dominio de
-producción registrado en Cloudflare. `TURNSTILE_SECRET_KEY` es privada. Ambas
-son necesarias junto con `TURNSTILE_HOSTNAME`, que debe coincidir exactamente
-con el hostname del dominio registrado en el widget de Cloudflare (por ejemplo,
-`www.ejemplo.com`, sin protocolo ni ruta). Si falta alguna variable, el
-formulario bloquea el envío.
-Las variables deben estar cargadas antes de ejecutar `npm run build`; las
-variables `NEXT_PUBLIC_*` quedan incluidas en el bundle de cliente durante la
-compilación y requieren un nuevo build si cambian.
+El job de producción en [.github/workflows/ci.yml](../.github/workflows/ci.yml)
+se ejecuta únicamente en pushes a `main` y depende del job de calidad. Corre
+`vercel pull`, `vercel build --prod` y `vercel deploy --prebuilt --prod`. Los
+despliegues se serializan para evitar que dos commits compitan por producción.
+Un pull request o un push a otra rama no publica el sitio.
 
-La plantilla sin secretos se mantiene en
-[.env.example](../.env.example). El archivo `.gitignore` bloquea los entornos
-locales y de producción.
+Después de configurar los secrets y las variables:
 
-El límite de envíos almacena un HMAC no reversible de la IP y marcas de tiempo
-en `leadSubmissionRateLimits`. Habilitá una política TTL de Firestore sobre el
-campo `expiresAt` para eliminar estos documentos vencidos.
-Configurá `LEAD_RATE_LIMIT_HMAC_KEY` con un valor aleatorio de al menos 32
-caracteres (por ejemplo, generado con `openssl rand -hex 32`); se usa para
-seudonimizar la IP y no se comparte con Turnstile.
+1. Integrar a `main` un cambio que haya pasado el workflow de calidad.
+2. Confirmar que termina correctamente el job **Deploy production to Vercel**.
+3. Verificar la URL de Vercel o el dominio configurado: HTTPS, landing, logo,
+   video, Vector Uno, formulario, captcha y persistencia de leads en el
+   proyecto Firebase esperado.
+4. Configurar el hostname real en Cloudflare Turnstile y actualizar
+   `TURNSTILE_HOSTNAME` y las claves correspondientes en Vercel si cambia el
+   dominio.
 
-Si siguen activas las integraciones externas antiguas, configurá sus URL de
-webhook y secretos correspondientes. El endpoint `/api/contact` falla de forma
-explícita si no tiene `CONTACT_WEBHOOK_URL`. El endpoint `/api/vectoruno`
-también responde indisponible hasta que se configure `VECTORUNO_WEBHOOK_URL`;
-ninguno simula recepción exitosa cuando falta la integración.
-`ALLOWED_ORIGINS` puede configurarse como una lista separada por comas para
-restringir el acceso de navegador a las APIs heredadas.
-
-Publicá las reglas de [firestore.rules](../firestore.rules) en el proyecto
-Firebase para impedir acceso directo no autenticado a las colecciones; las
-operaciones de leads las ejecuta exclusivamente el servidor con Admin SDK.
-
-## Nginx y dominio
-
-Nginx debe recibir el tráfico público y derivarlo a Next.js:
-
-```text
-https://dominio-real
-    |
-    v
-Nginx :443
-    |
-    v
-http://127.0.0.1:3000
-```
-
-La configuración debe incluir:
-
-- redirección de HTTP a HTTPS;
-- certificado TLS válido;
-- proxy hacia `127.0.0.1:3000`;
-- `proxy_set_header X-Real-IP $remote_addr` para que la aplicación reciba la
-  IP efectiva del cliente y no una cabecera reenviada por el visitante;
-- soporte para archivos estáticos y el video institucional;
-- headers básicos de seguridad;
-- timeouts compatibles con la aplicación.
-
-El puerto 3000 no debe exponerse públicamente.
-
-## Secrets de GitHub Actions
-
-El repositorio debe configurar estos secrets en GitHub:
-
-```text
-HOSTINGER_HOST
-HOSTINGER_PORT
-HOSTINGER_USER
-HOSTINGER_SSH_KEY
-HOSTINGER_APP_PATH
-```
-
-Opcionalmente:
-
-```text
-HOSTINGER_KNOWN_HOSTS
-```
-
-La clave SSH debe ser exclusiva para el despliegue y no debe reutilizar una
-clave personal. Nunca se deben escribir contraseñas, claves privadas o tokens
-en el workflow.
-
-## Flujo de despliegue aprobado para el MVP
-
-El job de despliegue solo debe ejecutarse después de que el job de calidad
-termine correctamente y únicamente para pushes a `main`.
-
-En Hostinger, el flujo será:
-
-```bash
-cd /var/www/vector-austral
-git fetch origin
-git checkout main
-git pull --ff-only origin main
-npm ci
-npm run build
-pm2 restart vector-austral
-```
-
-Si el build falla, no se debe reiniciar PM2. El error debe quedar visible en
-los logs de GitHub Actions y en la consola del servidor.
-
-## Verificación posterior
-
-Después de cada despliegue se debe verificar:
-
-- la URL pública responde con HTTP 200;
-- el certificado HTTPS es válido;
-- la landing carga el logo y los estilos;
-- el video institucional responde desde `public/assets`;
-- Vector Uno abre correctamente;
-- el formulario se renderiza;
-- Firebase recibe leads en el proyecto esperado;
-- PM2 informa el proceso `vector-austral` como `online`.
-
-Comandos útiles en el VPS:
-
-```bash
-pm2 status
-pm2 logs vector-austral --lines 100
-curl -I https://dominio-real
-curl -I https://dominio-real/assets/demos/vector-uno/VectorUnoDemo.mp4
-```
-
-## Rollback operativo del MVP
-
-La estrategia simple utiliza Git para volver a un commit conocido:
-
-```bash
-cd /var/www/vector-austral
-git log --oneline -5
-git checkout COMMIT_ESTABLE
-npm ci
-npm run build
-pm2 restart vector-austral
-```
-
-Este rollback es manual y debe registrarse en el historial de despliegues. Las
-releases aisladas con enlaces simbólicos se evaluarán antes de Specs 2 y 3.
-
-## Límites y decisiones
-
-- No se guardan credenciales en GitHub como archivos del repositorio.
-- No se cambia Next.js por un sitio estático.
-- No se modifica Firebase por el cambio de hosting.
-- El video institucional continúa siendo un asset versionado y rastreable.
-- La configuración de producción no se inventa hasta disponer del dominio,
-  IP, usuario y clave SSH reales.
-- El despliegue automático requiere completar los secrets de GitHub y probar
-  primero un despliegue manual.
-
-## Estado
-
-La arquitectura del proyecto y el pipeline de calidad local están listos. El
-despliegue automático queda pendiente de:
-
-1. preparar el VPS de Hostinger;
-2. configurar dominio, Nginx y SSL;
-3. crear el usuario y la clave SSH de despliegue;
-4. probar el primer despliegue manual;
-5. agregar los secrets de GitHub;
-6. habilitar el job `deploy` en GitHub Actions.
+La publicación queda pendiente hasta crear el proyecto, cargar los secrets y
+las variables de producción, y completar esa verificación con una URL real.
