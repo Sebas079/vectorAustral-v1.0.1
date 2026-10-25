@@ -2,22 +2,22 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   findLeadMock,
-  saveLeadMock,
+  saveSheetLeadMock,
   rateLimitMock,
   verifyTokenMock,
   conflictError,
 } = vi.hoisted(() => ({
   findLeadMock: vi.fn(),
-  saveLeadMock: vi.fn(),
+  saveSheetLeadMock: vi.fn(),
   rateLimitMock: vi.fn(),
   verifyTokenMock: vi.fn(),
   conflictError: class LeadContactConflictError extends Error {},
 }));
 
-vi.mock("../lib/firebase/leadService", () => ({
+vi.mock("../lib/googleSheets/leadService", () => ({
   LeadContactConflictError: conflictError,
-  findLeadByContact: findLeadMock,
-  saveLead: saveLeadMock,
+  findSheetLeadByContact: findLeadMock,
+  saveSheetLead: saveSheetLeadMock,
 }));
 vi.mock("../lib/security/leadRateLimit", () => ({
   getSubmissionRetryAfter: rateLimitMock,
@@ -61,7 +61,7 @@ describe("lead API routes", () => {
       email: lookupBody.email,
       phone: lookupBody.phone,
     });
-    saveLeadMock.mockResolvedValue({ id: "lead-1" });
+    saveSheetLeadMock.mockResolvedValue({ id: "lead-1" });
   });
 
   it("does not look up a lead when Turnstile rejects the token", async () => {
@@ -113,7 +113,7 @@ describe("lead API routes", () => {
 
     expect(response.status).toBe(429);
     expect(response.headers.get("Retry-After")).toBe("7");
-    expect(saveLeadMock).not.toHaveBeenCalled();
+    expect(saveSheetLeadMock).not.toHaveBeenCalled();
   });
 
   it("saves only a verified submission", async () => {
@@ -127,7 +127,7 @@ describe("lead API routes", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ id: "lead-1" });
-    expect(saveLeadMock).toHaveBeenCalledWith({
+    expect(saveSheetLeadMock).toHaveBeenCalledWith({
       fullName: submissionBody.fullName,
       email: submissionBody.email,
       phone: submissionBody.phone,
@@ -136,7 +136,7 @@ describe("lead API routes", () => {
   });
 
   it("rejects conflicting contact records without exposing either lead", async () => {
-    saveLeadMock.mockRejectedValueOnce(new conflictError());
+    saveSheetLeadMock.mockRejectedValueOnce(new conflictError());
     const response = await submitLead(
       new Request("http://localhost/api/leads", {
         method: "POST",

@@ -16,6 +16,64 @@ La estrategia inicial prioriza bajo costo, trazabilidad y simplicidad operativa.
 Las releases versionadas y los despliegues sin interrupción quedan reservados
 para Specs 2 y 3.
 
+## Etapa provisoria: Vercel y Google Sheets
+
+Mientras el VPS y n8n no estén disponibles, los formularios y Vector Uno usan
+una hoja de cálculo como almacenamiento temporal. Los leads históricos de
+Firestore no se copian. Firestore se mantiene únicamente para el límite de
+envíos por IP de 10 segundos.
+
+### Preparar la hoja
+
+Creá una hoja de cálculo privada con estas dos pestañas y encabezados en la
+primera fila, respetando el orden:
+
+```text
+Leads:     id | fullName | email | phone | isClient | consultationHistory | createdAt | updatedAt
+Knowledge: id | title | keywords | response | active
+```
+
+La pestaña `Leads` la administra la aplicación. No edites ni reordenes sus
+columnas; contiene datos personales e historial de consultas.
+
+En `Knowledge`, agregá una fila por respuesta. Separá las palabras clave con
+comas, usá `TRUE` para habilitar la respuesta y `FALSE` para deshabilitarla.
+Vector Uno consulta esta pestaña al responder cada pregunta, por lo que los
+cambios se aplican sin volver a desplegar el sitio. El contenido de esta
+pestaña debe ser apto para respuestas públicas; no cargues información privada.
+
+Como punto de partida, cargá estas cuatro respuestas:
+
+| id         | title                  | keywords                                                                      | response                                                                                                                                                                                                                         | active |
+| ---------- | ---------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| web        | Desarrollo web         | web, sitio, plataforma, página, pagina, escalable                             | Desarrollamos plataformas y sitios web rápidos, seguros y preparados para escalar. Enfocamos cada desarrollo en la velocidad, la seguridad y una experiencia optimizada para convertir tráfico cualificado en oportunidades B2B. | TRUE   |
+| automation | Automatización con n8n | n8n, automatización, automatizacion, flujo, crm, erp, api                     | Conectamos CRM, ERP, bases de datos y APIs mediante flujos robustos en n8n. Las automatizaciones pueden ejecutarse en infraestructura propia o gestionada, con control de datos y estabilidad operacional.                       | TRUE   |
+| diagnostic | Diagnóstico Inicial    | diagnóstico, diagnostico, auditoría, auditoria, viabilidad, roi, ineficiencia | El Diagnóstico Inicial evalúa procesos críticos, arquitectura web y viabilidad de integración para priorizar oportunidades de impacto. Es el primer paso para definir una hoja de ruta técnica.                                  | TRUE   |
+| process    | Proceso de trabajo     | proceso, cómo, como, trabajo, implementación, implementacion                  | Comenzamos entendiendo tu operación y su arquitectura actual. Luego identificamos oportunidades, evaluamos viabilidad y definimos una hoja de ruta de implementación sostenible.                                                 | TRUE   |
+
+### Dar acceso a Vercel
+
+1. En Google Cloud, habilitá Google Sheets API y creá una cuenta de servicio
+   dedicada para esta integración.
+2. Compartí la hoja únicamente con la cuenta propietaria y con el email de la
+   cuenta de servicio, otorgando a esta última permiso de edición.
+3. En Vercel, abrí **Settings → Environment Variables** y configurá
+   `GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON` con el contenido completo del JSON de
+   la cuenta de servicio, y `GOOGLE_SHEETS_SPREADSHEET_ID` con el ID de la hoja
+   que aparece en su URL.
+4. Marcá las credenciales como sensibles y seleccioná los entornos requeridos.
+   No uses el prefijo `NEXT_PUBLIC_` para ninguna de estas variables.
+5. Configurá el runtime del proyecto para usar Node.js 22 o superior.
+6. Volvé a desplegar después de guardar las variables.
+
+Para desarrollo local, guardá las mismas variables en `.env.local`, que está
+excluido de Git. No pegues claves privadas en el repositorio ni en mensajes.
+
+Esta integración es temporal: Google Sheets no ofrece transacciones para la
+deduplicación de leads bajo escrituras simultáneas. No la uses como repositorio
+permanente ni para cargas concurrentes elevadas; esos casos se resolverán al
+migrar al VPS y n8n.
+
 ## Arquitectura de producción
 
 ```text
@@ -100,6 +158,8 @@ Variables esperadas:
 
 ```text
 FIREBASE_SERVICE_ACCOUNT_JSON
+GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON
+GOOGLE_SHEETS_SPREADSHEET_ID
 NEXT_PUBLIC_TURNSTILE_SITE_KEY
 TURNSTILE_SECRET_KEY
 TURNSTILE_HOSTNAME

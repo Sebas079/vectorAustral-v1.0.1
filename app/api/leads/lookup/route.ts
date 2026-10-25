@@ -1,4 +1,4 @@
-import { findLeadByContact } from "@/lib/firebase/leadService";
+import { findSheetLeadByContact } from "@/lib/googleSheets/leadService";
 import { getRequestIp } from "@/lib/security/requestIp";
 import {
   TurnstileUnavailableError,
@@ -35,7 +35,10 @@ export async function POST(request: Request) {
       return Response.json({ error: "verification_failed" }, { status: 400 });
     }
 
-    const lead = await findLeadByContact(parsed.data.email, parsed.data.phone);
+    const lead = await findSheetLeadByContact(
+      parsed.data.email,
+      parsed.data.phone,
+    );
     return Response.json(
       lead ? { match: true, fullName: lead.fullName } : { match: false },
     );
@@ -48,7 +51,7 @@ export async function POST(request: Request) {
       );
     }
 
-    console.error("Lead lookup failed:", error);
-    return Response.json({ error: "lookup_failed" }, { status: 500 });
+    console.error("Lead lookup failed.");
+    return Response.json({ error: "lookup_failed" }, { status: 503 });
   }
 }

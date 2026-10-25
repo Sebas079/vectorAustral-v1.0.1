@@ -1,5 +1,5 @@
 export interface KnowledgeEntry {
-  id: "web" | "automation" | "diagnostic" | "process";
+  id: string;
   title: string;
   keywords: string[];
   response: string;

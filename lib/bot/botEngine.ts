@@ -16,13 +16,19 @@ function normalizeText(input: string): string {
   return input.trim().toLocaleLowerCase("es-AR");
 }
 
-function findKnowledgeEntry(message: string): KnowledgeEntry | undefined {
-  return knowledgeBase.find((entry) =>
+function findKnowledgeEntry(
+  message: string,
+  entries: KnowledgeEntry[],
+): KnowledgeEntry | undefined {
+  return entries.find((entry) =>
     entry.keywords.some((keyword) => message.includes(keyword)),
   );
 }
 
-export function answerBot(message: string): BotResponse {
+export function answerBot(
+  message: string,
+  entries: KnowledgeEntry[] = knowledgeBase,
+): BotResponse {
   const normalizedMessage = normalizeText(message);
 
   if (!normalizedMessage) {
@@ -41,7 +47,7 @@ export function answerBot(message: string): BotResponse {
     };
   }
 
-  const entry = findKnowledgeEntry(normalizedMessage);
+  const entry = findKnowledgeEntry(normalizedMessage, entries);
 
   if (!entry) {
     return {
