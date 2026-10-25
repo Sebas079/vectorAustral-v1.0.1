@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import ChatWidget from "../components/ChatWidget";
 
@@ -20,7 +20,12 @@ describe("ChatWidget", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("sends messages and shows the bot response", () => {
+  it("sends messages to the server and shows the latest knowledge response", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        Response.json({ message: "Respuesta vigente desde Sheets." }),
+      );
     render(<ChatWidget />);
     fireEvent.click(
       screen.getByRole("button", { name: /hablar con vector uno/i }),
@@ -31,7 +36,38 @@ describe("ChatWidget", () => {
     fireEvent.click(screen.getByRole("button", { name: "Enviar" }));
 
     expect(screen.getByText("¿Qué hacen con n8n?")).toBeInTheDocument();
-    expect(screen.getByText(/Conectamos CRM, ERP/)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.getByText("Respuesta vigente desde Sheets."),
+      ).toBeInTheDocument(),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/vectoruno/chat",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ message: "¿Qué hacen con n8n?" }),
+      }),
+    );
+  });
+
+  it("uses a safe fallback when the chat service is unavailable", async () => {
+    vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(
+      new Error("service unavailable"),
+    );
+    render(<ChatWidget />);
+    fireEvent.click(
+      screen.getByRole("button", { name: /hablar con vector uno/i }),
+    );
+    fireEvent.change(screen.getByLabelText("Escribí tu consulta"), {
+      target: { value: "¿Qué ofrecen?" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Enviar" }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(/no puedo consultar mi base de respuestas/i),
+      ).toBeInTheDocument(),
+    );
   });
 
   it("offers a direct link to the contact form", () => {

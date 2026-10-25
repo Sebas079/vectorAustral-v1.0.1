@@ -29,6 +29,21 @@ describe("answerBot", () => {
     expect(result.message).toContain("sin inventar datos");
   });
 
+  it("uses only the supplied knowledge entries when provided", () => {
+    const result = answerBot("¿Qué ofrecemos sobre web?", [
+      {
+        id: "custom-web",
+        title: "Información web vigente",
+        keywords: ["web"],
+        response: "Esta respuesta fue actualizada desde la hoja.",
+      },
+    ]);
+
+    expect(result.message).toBe(
+      "Esta respuesta fue actualizada desde la hoja.",
+    );
+  });
+
   it("falls back when the message is empty", () => {
     const result = answerBot("   ");
 
