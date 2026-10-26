@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import ContactForm from "../components/ContactForm";
 
@@ -25,6 +25,12 @@ vi.mock("../components/TurnstileWidget", () => ({
 describe("ContactForm", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.stubEnv("NEXT_PUBLIC_WHATSAPP_NUMBER", "5491100000000");
+    vi.stubEnv("NEXT_PUBLIC_CONTACT_EMAIL", "contacto@vectoraustral.com");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   function enterValidContact() {
@@ -141,16 +147,49 @@ describe("ContactForm", () => {
         "Tuvimos un problema, volvé a intentar más tarde.",
       ),
     );
+    expect(
+      screen.getByRole("link", { name: "Escribir por email" }),
+    ).toHaveAttribute("href", "mailto:contacto@vectoraustral.com");
+    expect(
+      screen.getByRole("link", { name: "Contactar por WhatsApp" }),
+    ).toHaveAttribute("href", "https://wa.me/5491100000000");
   });
 
-  it("offers a retry when verification expires", () => {
+  it("shows email and WhatsApp actions when Turnstile is unavailable", () => {
+    render(<ContactForm />);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Simular error de verificación" }),
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "No pudimos cargar o validar la verificación humana.",
+    );
+    expect(
+      screen.getByRole("button", { name: "Volver a verificar" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Escribir por email" }),
+    ).toHaveAttribute("href", "mailto:contacto@vectoraustral.com");
+    expect(
+      screen.getByRole("link", { name: "Contactar por WhatsApp" }),
+    ).toHaveAttribute("href", "https://wa.me/5491100000000");
+
+    fireEvent.click(screen.getByRole("button", { name: "Volver a verificar" }));
+
+    expect(
+      screen.queryByRole("link", { name: "Escribir por email" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps WhatsApp fallback visible but disabled when no number is configured", () => {
+    vi.stubEnv("NEXT_PUBLIC_WHATSAPP_NUMBER", "");
     render(<ContactForm />);
     fireEvent.click(
       screen.getByRole("button", { name: "Simular error de verificación" }),
     );
 
     expect(
-      screen.getByRole("button", { name: "Volver a verificar" }),
-    ).toBeInTheDocument();
+      screen.getByRole("button", { name: "WhatsApp no disponible" }),
+    ).toBeDisabled();
   });
 });
