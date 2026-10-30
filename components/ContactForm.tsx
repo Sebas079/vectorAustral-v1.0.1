@@ -21,9 +21,6 @@ const initialValues: FormValues = {
   reason: "",
 };
 
-const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
-const contactEmail = process.env.NEXT_PUBLIC_CONTACT_EMAIL;
-
 async function readResponse(response: Response): Promise<unknown> {
   const payload: unknown = await response.json();
   return payload;
@@ -46,30 +43,38 @@ async function readApiResponse(response: Response) {
 }
 
 function ContactAlternatives() {
+  const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
+  const contactEmail =
+    process.env.NEXT_PUBLIC_CONTACT_EMAIL || "contacto@vectoraustral.com";
+
   return (
-    <p>
-      También podés escribirnos por{" "}
+    <div className="grid gap-3 pt-2 sm:grid-cols-2">
+      <a
+        className="inline-flex min-h-11 items-center justify-center rounded-lg border border-white/20 px-4 py-2 text-center font-semibold text-white transition hover:border-volt hover:text-volt focus:outline-none focus:ring-2 focus:ring-volt"
+        href={`mailto:${contactEmail}`}
+      >
+        Escribir por email
+      </a>
       {whatsappNumber ? (
         <a
-          className="font-semibold underline"
+          className="inline-flex min-h-11 items-center justify-center rounded-lg bg-emerald-500 px-4 py-2 text-center font-semibold text-emerald-950 transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-300"
           href={`https://wa.me/${whatsappNumber.replace(/\D/g, "")}`}
+          target="_blank"
+          rel="noreferrer"
         >
-          WhatsApp
+          Contactar por WhatsApp
         </a>
-      ) : null}{" "}
-      {contactEmail ? (
-        <>
-          o por{" "}
-          <a
-            className="font-semibold underline"
-            href={`mailto:${contactEmail}`}
-          >
-            email
-          </a>
-        </>
-      ) : null}
-      .
-    </p>
+      ) : (
+        <button
+          type="button"
+          disabled
+          className="inline-flex min-h-11 items-center justify-center rounded-lg border border-white/20 px-4 py-2 text-center font-semibold text-white transition hover:border-volt hover:text-volt focus:outline-none focus:ring-2 focus:ring-volt"
+          title="Configurá NEXT_PUBLIC_WHATSAPP_NUMBER en Vercel para habilitar este canal."
+        >
+          WhatsApp no disponible
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -78,6 +83,7 @@ export default function ContactForm() {
   const [captchaToken, setCaptchaToken] = useState("");
   const [captchaResetKey, setCaptchaResetKey] = useState(0);
   const [captchaRetryKey, setCaptchaRetryKey] = useState(0);
+  const [captchaUnavailable, setCaptchaUnavailable] = useState(false);
   const [honeypot, setHoneypot] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
   const [status, setStatus] = useState<FormStatus>("idle");
@@ -242,10 +248,11 @@ export default function ContactForm() {
           payload.error === "verification_unavailable" ||
           payload.error === "verification_failed"
         ) {
+          setCaptchaUnavailable(true);
           setErrors((current) => ({
             ...current,
             captchaToken:
-              "La verificación no se pudo validar. Volvé a intentarlo.",
+              "No pudimos cargar o validar la verificación humana. Volvé a intentar.",
           }));
         }
         return;
@@ -349,6 +356,7 @@ export default function ContactForm() {
               retryKey={captchaRetryKey}
               onToken={(token) => {
                 setCaptchaToken(token);
+                setCaptchaUnavailable(false);
                 setStatus("idle");
                 setErrorMessage("");
                 setErrors((current) => ({
@@ -358,13 +366,15 @@ export default function ContactForm() {
               }}
               onError={() => {
                 setCaptchaToken("");
+                setCaptchaUnavailable(true);
                 setStatus("error");
                 setErrorMessage(
-                  "La verificación venció o no está disponible. Volvé a intentarlo.",
+                  "No pudimos cargar o validar la verificación humana. Volvé a intentarlo o contactanos por otra vía.",
                 );
                 setErrors((current) => ({
                   ...current,
-                  captchaToken: "La verificación venció o no está disponible.",
+                  captchaToken:
+                    "No pudimos cargar o validar la verificación humana. Volvé a intentar.",
                 }));
               }}
             />
@@ -380,6 +390,7 @@ export default function ContactForm() {
                     }));
                     setStatus("idle");
                     setErrorMessage("");
+                    setCaptchaUnavailable(false);
                     setCaptchaRetryKey((key) => key + 1);
                     resetCaptcha();
                   }}
@@ -387,7 +398,7 @@ export default function ContactForm() {
                 >
                   Volver a verificar
                 </button>
-                <ContactAlternatives />
+                {captchaUnavailable ? <ContactAlternatives /> : null}
               </div>
             ) : null}
             <button
@@ -439,7 +450,7 @@ export default function ContactForm() {
               Recibimos tu consulta. En breve nos pondremos en contacto.
             </p>
           ) : null}
-          {status === "error" ? (
+          {status === "error" && !captchaUnavailable ? (
             <div role="alert" className="mt-5 space-y-2 text-sm text-rose-300">
               <p>{errorMessage}</p>
               <ContactAlternatives />

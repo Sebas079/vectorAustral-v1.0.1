@@ -21,11 +21,11 @@ El formulario de contacto debe impedir envíos automatizados, proteger los datos
 - RF-2: CUANDO exista exactamente un lead coincidente, EL SISTEMA completará el nombre del formulario con el nombre guardado y permitirá editarlo.
 - RF-3: SI el email y el teléfono coinciden con leads diferentes, ENTONCES EL SISTEMA no combinará ni expondrá los datos de esos registros e indicará que se contacte con un especialista.
 - RF-4: CUANDO se solicite guardar una consulta, EL SISTEMA verificará la validez de la verificación humana antes de modificar los datos de leads.
-- RF-5: SI la verificación humana no se completa, se rechaza, vence o no está disponible, ENTONCES EL SISTEMA no guardará la consulta e informará que se reintente o se contacte por email o WhatsApp.
+- RF-5: SI la verificación humana no se completa, se rechaza, vence o no está disponible, ENTONCES EL SISTEMA no guardará la consulta, informará el problema y ofrecerá reintentar o usar botones separados de email y WhatsApp.
 - RF-6: SI no transcurrieron 10 segundos desde el envío anterior desde la misma dirección IP, ENTONCES EL SISTEMA rechazará el nuevo envío y mostrará cuánto esperar antes de reintentar.
 - RF-7: CUANDO una consulta válida corresponda a un lead existente por email o teléfono, EL SISTEMA actualizará sus datos de contacto y agregará el motivo al historial sin crear otro lead.
 - RF-8: CUANDO una consulta válida no corresponda a un lead existente, EL SISTEMA creará un lead con el historial inicial y mostrará una confirmación de recepción.
-- RF-9: SI ocurre un error al guardar la consulta, ENTONCES EL SISTEMA informará que hubo un problema, permitirá reintentar y ofrecerá contacto por email o WhatsApp.
+- RF-9: SI ocurre un error al guardar la consulta, ENTONCES EL SISTEMA informará que hubo un problema, permitirá reintentar y ofrecerá botones separados de email y WhatsApp.
 - RF-10: CUANDO se envíe una consulta a la API de contacto heredada, EL SISTEMA validará un esquema cerrado, verificará Turnstile y aplicará el límite de 10 segundos por IP antes de reenviarla.
 - RF-11: CUANDO se envíe un mensaje a la API heredada de Vector Uno, EL SISTEMA validará el payload con un esquema cerrado antes de procesarlo.
 - RF-12: CUANDO una API heredada reenvíe datos a un webhook, EL SISTEMA abortará la solicitud tras 8 segundos y no registrará datos personales del payload en logs.
@@ -46,6 +46,7 @@ El formulario de contacto debe impedir envíos automatizados, proteger los datos
 - El email coincide con un lead y el teléfono con otro; no se revelan ni combinan los datos.
 - El visitante vuelve a enviar antes de transcurridos 10 segundos desde la misma dirección IP; la consulta no se guarda.
 - El servicio de verificación o el almacenamiento no están disponibles; no se informa un envío exitoso y se mantienen visibles las alternativas de contacto.
+- La verificación no se inicializa dentro de 10 segundos; se informa que no está disponible y se ofrecen las alternativas de contacto.
 - Una llamada directa a una API heredada no debe omitir la validación de su payload ni la verificación humana exigida para contacto.
 - Un webhook heredado falla o no está configurado; la API informa el fallo sin exponer el payload.
 
