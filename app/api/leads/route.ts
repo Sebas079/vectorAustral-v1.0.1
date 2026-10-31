@@ -1,7 +1,4 @@
-import {
-  LeadContactConflictError,
-  saveSheetLead,
-} from "@/lib/googleSheets/leadService";
+import { LeadContactConflictError, saveLead } from "@/lib/firebase/leadService";
 import { getSubmissionRetryAfter } from "@/lib/security/leadRateLimit";
 import { getRequestIp } from "@/lib/security/requestIp";
 import {
@@ -54,7 +51,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const lead = await saveSheetLead({
+    const lead = await saveLead({
       fullName: parsed.data.fullName,
       email: parsed.data.email,
       phone: parsed.data.phone,
