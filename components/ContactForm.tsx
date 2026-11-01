@@ -4,20 +4,20 @@ import { type FormEvent, useState } from "react";
 import { z } from "zod";
 
 import TurnstileWidget from "@/components/TurnstileWidget";
+import { getWhatsAppHref } from "@/lib/contact";
+import { landingContent } from "@/sources/content/landing";
 import {
-  leadLookupSchema,
   leadSubmissionSchema,
-  type LeadInput,
+  type LeadFormInput,
 } from "@/lib/validators/leadSchema";
 
-type FormValues = LeadInput;
+type FormValues = LeadFormInput;
 type FormErrors = Partial<Record<keyof FormValues | "captchaToken", string>>;
 type FormStatus = "idle" | "loading" | "success" | "error";
 
 const initialValues: FormValues = {
   fullName: "",
-  phone: "",
-  email: "",
+  contact: "",
   reason: "",
 };
 
@@ -28,8 +28,6 @@ async function readResponse(response: Response): Promise<unknown> {
 
 const apiResponseSchema = z.object({
   error: z.string().optional(),
-  match: z.boolean().optional(),
-  fullName: z.string().optional(),
   retryAfterSeconds: z.number().optional(),
 });
 
@@ -43,7 +41,7 @@ async function readApiResponse(response: Response) {
 }
 
 function ContactAlternatives() {
-  const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
+  const whatsappHref = getWhatsAppHref();
   const contactEmail =
     process.env.NEXT_PUBLIC_CONTACT_EMAIL || "contacto@vectoraustral.com";
 
@@ -55,10 +53,10 @@ function ContactAlternatives() {
       >
         Escribir por email
       </a>
-      {whatsappNumber ? (
+      {whatsappHref ? (
         <a
           className="inline-flex min-h-11 items-center justify-center rounded-lg bg-emerald-500 px-4 py-2 text-center font-semibold text-emerald-950 transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-300"
-          href={`https://wa.me/${whatsappNumber.replace(/\D/g, "")}`}
+          href={whatsappHref}
           target="_blank"
           rel="noreferrer"
         >
@@ -88,10 +86,6 @@ export default function ContactForm() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [status, setStatus] = useState<FormStatus>("idle");
   const [errorMessage, setErrorMessage] = useState("");
-  const [recognizedLead, setRecognizedLead] = useState(false);
-  const [lookupStatus, setLookupStatus] = useState<
-    "idle" | "loading" | "found" | "not_found" | "error"
-  >("idle");
 
   const resetCaptcha = () => {
     setCaptchaToken("");
@@ -102,89 +96,16 @@ export default function ContactForm() {
     setValues((current) => ({
       ...current,
       [field]: value,
-      ...(recognizedLead && (field === "email" || field === "phone")
-        ? { fullName: "" }
-        : {}),
     }));
     setErrors((current) => ({ ...current, [field]: undefined }));
     setStatus("idle");
     setErrorMessage("");
-
-    if (field === "email" || field === "phone") {
-      setLookupStatus("idle");
-      setRecognizedLead(false);
-    }
-  };
-
-  const handleLookup = async () => {
-    const validation = leadLookupSchema.safeParse({
-      email: values.email,
-      phone: values.phone,
-      captchaToken,
-    });
-
-    if (!validation.success) {
-      setErrors(
-        validation.error.issues.reduce<FormErrors>((current, issue) => {
-          const field = issue.path[0];
-          if (
-            field === "email" ||
-            field === "phone" ||
-            field === "captchaToken"
-          ) {
-            current[field] ??= issue.message;
-          }
-          return current;
-        }, {}),
-      );
-      return;
-    }
-
-    setErrors({});
-    setLookupStatus("loading");
-    try {
-      const response = await fetch("/api/leads/lookup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(validation.data),
-      });
-      const payload = await readApiResponse(response);
-
-      if (!response.ok) {
-        setLookupStatus("error");
-        setErrorMessage(
-          payload.error === "verification_unavailable"
-            ? "No pudimos validar la verificación. Volvé a intentarlo."
-            : "No pudimos buscar tus datos. Volvé a intentarlo.",
-        );
-        return;
-      }
-
-      const matchedFullName = payload.fullName;
-      if (payload.match === true && typeof matchedFullName === "string") {
-        setValues((current) => ({ ...current, fullName: matchedFullName }));
-        setRecognizedLead(true);
-        setLookupStatus("found");
-      } else {
-        setRecognizedLead(false);
-        setLookupStatus("not_found");
-      }
-    } catch {
-      setLookupStatus("error");
-      setErrorMessage("No pudimos buscar tus datos. Volvé a intentarlo.");
-    } finally {
-      resetCaptcha();
-    }
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setStatus("idle");
     setErrorMessage("");
-
-    if (lookupStatus === "loading") {
-      return;
-    }
 
     if (honeypot.trim()) {
       setStatus("error");
@@ -203,12 +124,12 @@ export default function ContactForm() {
         validation.error.issues.reduce<FormErrors>((current, issue) => {
           const field = issue.path[0];
           if (
-            typeof field === "string" &&
-            ["fullName", "phone", "email", "reason", "captchaToken"].includes(
-              field,
-            )
+            field === "fullName" ||
+            field === "contact" ||
+            field === "reason" ||
+            field === "captchaToken"
           ) {
-            current[field as keyof FormErrors] ??= issue.message;
+            current[field] ??= issue.message;
           }
           return current;
         }, {}),
@@ -238,7 +159,7 @@ export default function ContactForm() {
         setStatus("error");
         setErrorMessage(
           payload.error === "contact_conflict"
-            ? "El email y el teléfono corresponden a consultas distintas. Contactanos para revisar tus datos."
+            ? "Necesitamos revisar este dato antes de guardar tu consulta. Contactanos por una vía alternativa."
             : payload.error === "verification_unavailable" ||
                 payload.error === "verification_failed"
               ? "No pudimos validar la verificación. Volvé a intentarlo."
@@ -260,9 +181,7 @@ export default function ContactForm() {
 
       setStatus("success");
       setValues(initialValues);
-      setRecognizedLead(false);
       setHoneypot("");
-      setLookupStatus("idle");
     } catch {
       setStatus("error");
       setErrorMessage("Tuvimos un problema, volvé a intentar más tarde.");
@@ -279,18 +198,15 @@ export default function ContactForm() {
     >
       <div className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-[0.85fr_1.15fr]">
         <div>
-          <p className="mb-4 text-sm font-semibold text-volt">
-            Diagnóstico Inicial
-          </p>
+          <p className="mb-4 text-sm font-semibold text-volt">Contacto</p>
           <h2
             id="contact-form-title"
             className="max-w-lg text-3xl font-semibold tracking-tight text-white sm:text-4xl"
           >
-            El primer paso es entender si realmente lo necesitás.
+            {landingContent.diagnostic.title}
           </h2>
           <p className="mt-5 max-w-md leading-7 text-slate-300">
-            Contanos qué proceso querés mejorar. Un especialista revisará el
-            contexto y te responderá con una hoja de ruta clara.
+            {landingContent.diagnostic.description}
           </p>
         </div>
 
@@ -299,7 +215,7 @@ export default function ContactForm() {
           noValidate
           className="rounded-2xl border border-white/10 bg-graphite/40 p-6 shadow-2xl shadow-black/20 sm:p-8"
         >
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid gap-5">
             <Field
               id="fullName"
               label="Nombre"
@@ -308,29 +224,19 @@ export default function ContactForm() {
               onChange={(value) => updateValue("fullName", value)}
             />
             <Field
-              id="phone"
-              label="Teléfono"
-              type="tel"
-              value={values.phone}
-              error={errors.phone}
-              disabled={lookupStatus === "loading"}
-              onChange={(value) => updateValue("phone", value)}
+              id="contact"
+              label="WhatsApp o email"
+              value={values.contact}
+              error={errors.contact}
+              placeholder="Tu número o correo"
+              onChange={(value) => updateValue("contact", value)}
             />
-            <Field
-              id="email"
-              label="Email"
-              type="email"
-              value={values.email}
-              error={errors.email}
-              disabled={lookupStatus === "loading"}
-              onChange={(value) => updateValue("email", value)}
-            />
-            <div className="sm:col-span-2">
+            <div>
               <label
                 htmlFor="reason"
                 className="mb-2 block text-sm font-medium text-slate-200"
               >
-                ¿Qué necesitás mejorar?
+                ¿Qué necesitás resolver?
               </label>
               <textarea
                 id="reason"
@@ -401,32 +307,6 @@ export default function ContactForm() {
                 {captchaUnavailable ? <ContactAlternatives /> : null}
               </div>
             ) : null}
-            <button
-              type="button"
-              disabled={!captchaToken || lookupStatus === "loading"}
-              onClick={handleLookup}
-              className="rounded-lg border border-white/15 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-volt/50 hover:text-white focus:outline-none focus:ring-2 focus:ring-volt disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {lookupStatus === "loading"
-                ? "Buscando..."
-                : "¿Ya enviaste una consulta? Buscar mis datos"}
-            </button>
-            {lookupStatus === "found" ? (
-              <p role="status" className="text-sm text-emerald-300">
-                Encontramos tus datos. Revisalos y completá la nueva consulta.
-              </p>
-            ) : null}
-            {lookupStatus === "not_found" ? (
-              <p role="status" className="text-sm text-slate-300">
-                No encontramos una consulta anterior con esos datos.
-              </p>
-            ) : null}
-            {lookupStatus === "error" ? (
-              <div role="alert" className="space-y-2 text-sm text-rose-300">
-                <p>{errorMessage}</p>
-                <ContactAlternatives />
-              </div>
-            ) : null}
           </div>
 
           <label
@@ -459,15 +339,13 @@ export default function ContactForm() {
 
           <button
             type="submit"
-            disabled={status === "loading" || lookupStatus === "loading"}
+            disabled={status === "loading"}
             className="mt-7 w-full rounded-xl bg-volt px-5 py-3.5 font-semibold text-navy transition hover:bg-cyan-200 focus:outline-none focus:ring-2 focus:ring-volt focus:ring-offset-2 focus:ring-offset-graphite disabled:cursor-wait disabled:opacity-60"
           >
-            {status === "loading"
-              ? "Enviando consulta..."
-              : "Solicitar Diagnóstico Inicial"}
+            {status === "loading" ? "Enviando..." : "Enviar consulta"}
           </button>
           <p className="mt-3 text-center text-xs text-slate-400">
-            Sin compromiso. Analizamos la viabilidad técnica de tu proyecto.
+            Usaremos estos datos solo para responder tu consulta.
           </p>
         </form>
       </div>
@@ -478,22 +356,13 @@ export default function ContactForm() {
 interface FieldProps {
   id: keyof FormValues;
   label: string;
-  type?: "text" | "tel" | "email";
   value: string;
   error?: string;
-  disabled?: boolean;
+  placeholder?: string;
   onChange: (value: string) => void;
 }
 
-function Field({
-  id,
-  label,
-  type = "text",
-  value,
-  error,
-  disabled = false,
-  onChange,
-}: FieldProps) {
+function Field({ id, label, value, error, placeholder, onChange }: FieldProps) {
   return (
     <div>
       <label
@@ -505,9 +374,9 @@ function Field({
       <input
         id={id}
         name={id}
-        type={type}
+        type="text"
+        placeholder={placeholder}
         value={value}
-        disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}

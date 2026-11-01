@@ -43,8 +43,7 @@ const lookupBody = {
 
 const submissionBody = {
   fullName: "Ana Gómez",
-  email: lookupBody.email,
-  phone: lookupBody.phone,
+  contact: lookupBody.email,
   reason: "Automatizar consultas.",
   captchaToken: lookupBody.captchaToken,
   honeypot: "",
@@ -129,8 +128,29 @@ describe("lead API routes", () => {
     expect(await response.json()).toEqual({ id: "lead-1" });
     expect(saveLeadMock).toHaveBeenCalledWith({
       fullName: submissionBody.fullName,
-      email: submissionBody.email,
-      phone: submissionBody.phone,
+      email: lookupBody.email,
+      phone: "",
+      reason: submissionBody.reason,
+    });
+  });
+
+  it("accepts a WhatsApp contact without requiring an email", async () => {
+    const response = await submitLead(
+      new Request("http://localhost/api/leads", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          ...submissionBody,
+          contact: lookupBody.phone,
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(saveLeadMock).toHaveBeenCalledWith({
+      fullName: submissionBody.fullName,
+      email: "",
+      phone: lookupBody.phone,
       reason: submissionBody.reason,
     });
   });

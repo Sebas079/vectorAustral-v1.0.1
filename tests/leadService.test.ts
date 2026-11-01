@@ -101,6 +101,38 @@ describe("saveLead", () => {
     );
   });
 
+  it("matches a single contact value without querying an empty channel", async () => {
+    const store = createStore();
+    const phoneOnlyInput = { ...validInput, email: "" };
+
+    await saveLead(phoneOnlyInput, store);
+
+    expect(store.findByEmailOrPhone).toHaveBeenCalledWith("", validInput.phone);
+  });
+
+  it("preserves the other saved contact channel when updating a lead", async () => {
+    const existingLead: LeadDocument = {
+      id: "lead-existing",
+      fullName: "Ana Gómez",
+      email: validInput.email,
+      phone: validInput.phone,
+      isClient: false,
+      consultationHistory: [],
+      createdAt: "2026-09-19T12:00:00.000Z",
+      updatedAt: "2026-09-19T12:00:00.000Z",
+    };
+    const store = createStore(existingLead);
+
+    const result = await saveLead(
+      { ...validInput, email: "" },
+      store,
+      new Date("2026-09-20T12:00:00.000Z"),
+    );
+
+    expect(result.email).toBe(validInput.email);
+    expect(result.phone).toBe(validInput.phone);
+  });
+
   it("recognizes a lead only when email and phone belong to the same record", async () => {
     const existingLead: LeadDocument = {
       id: "lead-existing",

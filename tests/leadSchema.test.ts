@@ -4,12 +4,12 @@ import {
   leadSchema,
   leadLookupSchema,
   leadSubmissionSchema,
+  normalizeLeadInput,
 } from "../lib/validators/leadSchema";
 
 const validLead = {
   fullName: "Ana Gómez",
-  phone: "+54 9 11 5555-1234",
-  email: "ana@example.com",
+  contact: "ana@example.com",
   reason: "Necesito automatizar la gestión de consultas.",
 };
 
@@ -21,15 +21,15 @@ describe("leadSchema", () => {
   it("requires valid contact details and a verified token for lookup", () => {
     expect(
       leadLookupSchema.safeParse({
-        email: validLead.email,
-        phone: validLead.phone,
+        email: validLead.contact,
+        phone: "+54 9 11 5555-1234",
         captchaToken: "turnstile-token",
       }).success,
     ).toBe(true);
     expect(
       leadLookupSchema.safeParse({
-        email: validLead.email,
-        phone: validLead.phone,
+        email: validLead.contact,
+        phone: "+54 9 11 5555-1234",
         captchaToken: "",
       }).success,
     ).toBe(false);
@@ -55,25 +55,52 @@ describe("leadSchema", () => {
   it("rejects an invalid email", () => {
     const result = leadSchema.safeParse({
       ...validLead,
-      email: "ana-example.com",
-    });
-
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe("Ingresá un email válido.");
-    }
-  });
-
-  it("rejects an invalid phone number", () => {
-    const result = leadSchema.safeParse({
-      ...validLead,
-      phone: "123",
+      contact: "ana-example.com",
     });
 
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.issues[0]?.message).toBe(
-        "Ingresá un teléfono válido.",
+        "Ingresá un email o un número de WhatsApp válido.",
+      );
+    }
+  });
+
+  it("accepts a WhatsApp number as the single contact field", () => {
+    expect(
+      leadSchema.safeParse({
+        ...validLead,
+        contact: "+54 9 11 5555-1234",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("normalizes the contact field into the matching lead channel", () => {
+    expect(normalizeLeadInput(validLead)).toMatchObject({
+      email: "ana@example.com",
+      phone: "",
+    });
+    expect(
+      normalizeLeadInput({
+        ...validLead,
+        contact: "+54 9 11 5555-1234",
+      }),
+    ).toMatchObject({
+      email: "",
+      phone: "+54 9 11 5555-1234",
+    });
+  });
+
+  it("rejects a malformed phone number", () => {
+    const result = leadSchema.safeParse({
+      ...validLead,
+      contact: "123",
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(
+        "Ingresá un email o un número de WhatsApp válido.",
       );
     }
   });
@@ -81,8 +108,7 @@ describe("leadSchema", () => {
   it("rejects empty required fields", () => {
     const result = leadSchema.safeParse({
       fullName: " ",
-      phone: "",
-      email: "",
+      contact: "",
       reason: " ",
     });
 
@@ -90,9 +116,8 @@ describe("leadSchema", () => {
     if (!result.success) {
       expect(result.error.issues.map((issue) => issue.message)).toEqual([
         "El nombre es obligatorio.",
-        "El teléfono es obligatorio.",
-        "El email es obligatorio.",
-        "El motivo es obligatorio.",
+        "El dato de contacto es obligatorio.",
+        "Contanos qué necesitás resolver.",
       ]);
     }
   });

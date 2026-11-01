@@ -1,27 +1,26 @@
 // El proceso comunica una secuencia concreta, no una promesa genérica.
 export const processContent = {
   eyebrow: "Cómo trabajamos",
-  title: "Un proceso simple, claro y orientado a resultados.",
+  title: "Primero entendemos el problema. Después elegimos qué hacer.",
   description:
-    "Nos enfocamos en entender el problema real y entregar una solución útil, rápida y escalable.",
+    "Cada negocio trabaja distinto. Por eso arrancamos por lo que hoy te quita tiempo o te hace perder consultas.",
   steps: [
     {
       number: "01",
-      title: "Diagnóstico",
-      description:
-        "Analizamos el negocio, los objetivos y las fricciones para definir la solución correcta.",
+      title: "Conversamos",
+      description: "Nos contás cómo trabajás y qué parte querés mejorar.",
     },
     {
       number: "02",
-      title: "Diseño y desarrollo",
+      title: "Definimos una solución",
       description:
-        "Construimos desde la arquitectura hasta la interfaz con foco en rendimiento, claridad y crecimiento.",
+        "Revisamos las herramientas que ya usás y acordamos qué conviene conectar o construir.",
     },
     {
       number: "03",
-      title: "Implementación y escalado",
+      title: "La ponemos en marcha",
       description:
-        "Entregamos, optimizamos y conectamos cada parte para que la solución siga funcionando mejor.",
+        "Implementamos la solución y revisamos con vos cómo funciona en el trabajo diario.",
     },
   ],
 } as const;

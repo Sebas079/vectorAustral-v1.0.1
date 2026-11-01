@@ -5,7 +5,7 @@ const navigationItems = [
   { href: "#nosotros", label: "Nosotros" },
   { href: "#servicios", label: "Servicios" },
   { href: "#proceso", label: "Proceso" },
-  { href: "#contacto", label: "Diagnóstico Inicial" },
+  { href: "#contacto", label: "Contacto" },
 ];
 
 function NavigationLinks() {

@@ -5,7 +5,10 @@ import {
   TurnstileUnavailableError,
   verifyTurnstileToken,
 } from "@/lib/security/turnstile";
-import { leadSubmissionSchema } from "@/lib/validators/leadSchema";
+import {
+  leadSubmissionSchema,
+  normalizeLeadInput,
+} from "@/lib/validators/leadSchema";
 
 export const runtime = "nodejs";
 
@@ -51,12 +54,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const lead = await saveLead({
-      fullName: parsed.data.fullName,
-      email: parsed.data.email,
-      phone: parsed.data.phone,
-      reason: parsed.data.reason,
-    });
+    const lead = await saveLead(normalizeLeadInput(parsed.data));
 
     return Response.json({ id: lead.id });
   } catch (error) {

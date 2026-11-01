@@ -1,12 +1,10 @@
 import Image from "next/image";
+import { getWhatsAppHref } from "@/lib/contact";
 
 const contactEmail = process.env.NEXT_PUBLIC_CONTACT_EMAIL;
-const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
 
 export default function Footer() {
-  const whatsappHref = whatsappNumber
-    ? `https://wa.me/${whatsappNumber.replace(/\D/g, "")}`
-    : undefined;
+  const whatsappHref = getWhatsAppHref();
 
   return (
     <footer className="border-t border-white/10 bg-navy px-6 py-8 text-slate-400">
@@ -26,7 +24,7 @@ export default function Footer() {
             />
           </a>
           <p className="mt-2 text-sm">
-            Ingeniería digital para operaciones que necesitan escalar.
+            Desarrollo web y automatización para negocios de la región.
           </p>
         </div>
 
