@@ -1,14 +1,14 @@
-import {
-  LeadContactConflictError,
-  saveSheetLead,
-} from "@/lib/googleSheets/leadService";
+import { LeadContactConflictError, saveLead } from "@/lib/firebase/leadService";
 import { getSubmissionRetryAfter } from "@/lib/security/leadRateLimit";
 import { getRequestIp } from "@/lib/security/requestIp";
 import {
   TurnstileUnavailableError,
   verifyTurnstileToken,
 } from "@/lib/security/turnstile";
-import { leadSubmissionSchema } from "@/lib/validators/leadSchema";
+import {
+  leadSubmissionSchema,
+  normalizeLeadInput,
+} from "@/lib/validators/leadSchema";
 
 export const runtime = "nodejs";
 
@@ -54,12 +54,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const lead = await saveSheetLead({
-      fullName: parsed.data.fullName,
-      email: parsed.data.email,
-      phone: parsed.data.phone,
-      reason: parsed.data.reason,
-    });
+    const lead = await saveLead(normalizeLeadInput(parsed.data));
 
     return Response.json({ id: lead.id });
   } catch (error) {
