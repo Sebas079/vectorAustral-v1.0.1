@@ -25,6 +25,7 @@ vi.mock("../components/TurnstileWidget", () => ({
 describe("ContactForm", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   function enterValidContact() {
@@ -126,6 +127,7 @@ describe("ContactForm", () => {
   });
 
   it("shows fallback actions when the server rejects the submission", async () => {
+    vi.stubEnv("NEXT_PUBLIC_WHATSAPP_NUMBER", "+5491169975989");
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
       Response.json({ error: "submission_failed" }, { status: 500 }),
     );
@@ -140,6 +142,10 @@ describe("ContactForm", () => {
       expect(screen.getByRole("alert")).toHaveTextContent(
         "Tuvimos un problema, volvé a intentar más tarde.",
       ),
+    );
+    expect(screen.getByRole("link", { name: "WhatsApp" })).toHaveAttribute(
+      "href",
+      "https://wa.me/5491169975989?text=Hola%2C+quiero+hacer+una+consulta+sobre+sus+servicios.",
     );
   });
 

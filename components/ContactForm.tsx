@@ -4,6 +4,7 @@ import { type FormEvent, useState } from "react";
 import { z } from "zod";
 
 import TurnstileWidget from "@/components/TurnstileWidget";
+import { getWhatsAppHref } from "@/lib/contact/whatsapp";
 import {
   leadLookupSchema,
   leadSubmissionSchema,
@@ -21,7 +22,6 @@ const initialValues: FormValues = {
   reason: "",
 };
 
-const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
 const contactEmail = process.env.NEXT_PUBLIC_CONTACT_EMAIL;
 
 async function readResponse(response: Response): Promise<unknown> {
@@ -46,13 +46,17 @@ async function readApiResponse(response: Response) {
 }
 
 function ContactAlternatives() {
+  const whatsappHref = getWhatsAppHref();
+
   return (
     <p>
       También podés escribirnos por{" "}
-      {whatsappNumber ? (
+      {whatsappHref ? (
         <a
           className="font-semibold underline"
-          href={`https://wa.me/${whatsappNumber.replace(/\D/g, "")}`}
+          href={whatsappHref}
+          target="_blank"
+          rel="noreferrer"
         >
           WhatsApp
         </a>

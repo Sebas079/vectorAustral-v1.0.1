@@ -125,6 +125,13 @@ son necesarias junto con `TURNSTILE_HOSTNAME`, que debe coincidir exactamente
 con el hostname del dominio registrado en el widget de Cloudflare (por ejemplo,
 `www.ejemplo.com`, sin protocolo ni ruta). Si falta alguna variable, el
 formulario bloquea el envío.
+
+`NEXT_PUBLIC_WHATSAPP_NUMBER` debe contener el número de destino en formato
+internacional, por ejemplo `+5491169975989`. El enlace abre el chat con un
+mensaje inicial precargado; el visitante debe enviarlo desde WhatsApp. Como es
+una variable `NEXT_PUBLIC_*`, se fija en el bundle durante `npm run build` y
+requiere una nueva compilación si cambia.
+
 Las variables deben estar cargadas antes de ejecutar `npm run build`; las
 variables `NEXT_PUBLIC_*` quedan incluidas en el bundle de cliente durante la
 compilación y requieren un nuevo build si cambian.
