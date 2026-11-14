@@ -25,11 +25,12 @@ El formulario de contacto debe impedir envíos automatizados, proteger los datos
 - RF-6: SI no transcurrieron 10 segundos desde el envío anterior desde la misma dirección IP, ENTONCES EL SISTEMA rechazará el nuevo envío y mostrará cuánto esperar antes de reintentar.
 - RF-7: CUANDO una consulta válida corresponda a un lead existente por email o teléfono, EL SISTEMA actualizará sus datos de contacto y agregará el motivo al historial sin crear otro lead.
 - RF-8: CUANDO una consulta válida no corresponda a un lead existente, EL SISTEMA creará un lead con el historial inicial y mostrará una confirmación de recepción.
-- RF-9: SI ocurre un error al guardar la consulta, ENTONCES EL SISTEMA informará que hubo un problema, permitirá reintentar y ofrecerá contacto por email o WhatsApp. El enlace de WhatsApp abrirá el chat con el número configurado en `NEXT_PUBLIC_WHATSAPP_NUMBER` y dejará escrito el mensaje inicial "Hola, quiero hacer una consulta sobre sus servicios."; la persona deberá enviarlo desde WhatsApp.
+- RF-9: SI ocurre un error al guardar la consulta, ENTONCES EL SISTEMA informará que hubo un problema, permitirá reintentar y ofrecerá contacto por email o WhatsApp. El enlace de WhatsApp abrirá el chat con el número configurado en `NEXT_PUBLIC_WHATSAPP_NUMBER` y dejará escrito el mensaje inicial "Hola, quiero hacer una consulta sobre sus servicios."; la persona deberá enviarlo desde WhatsApp. En el pie y en las alternativas del formulario, el enlace se representará solo con el ícono de WhatsApp, mantendrá un área interactiva mínima de 44 × 44 px y ofrecerá nombre accesible y foco visible. El enlace HTTPS de WhatsApp abrirá la aplicación cuando el navegador y el sistema operativo lo permitan; la web no puede suprimir avisos de apertura que dependan del dispositivo. En escritorio o sin la aplicación instalada, se usará la alternativa web de WhatsApp.
 - RF-10: CUANDO se envíe una consulta a la API de contacto heredada, EL SISTEMA validará un esquema cerrado, verificará Turnstile y aplicará el límite de 10 segundos por IP antes de reenviarla.
 - RF-11: CUANDO se envíe un mensaje a la API heredada de Vector Uno, EL SISTEMA validará el payload con un esquema cerrado antes de procesarlo.
 - RF-12: CUANDO una API heredada reenvíe datos a un webhook, EL SISTEMA abortará la solicitud tras 8 segundos y no registrará datos personales del payload en logs.
 - RF-13: SI el webhook requerido por una API heredada no está configurado o falla, ENTONCES EL SISTEMA responderá con un error explícito y no informará éxito.
+- RF-14: EN TODO momento durante la navegación, EL SISTEMA mantendrá un acceso flotante al chat de WhatsApp en la esquina inferior izquierda, opuesta al acceso flotante de Vector Uno. El acceso permanecerá disponible cuando Vector Uno esté abierto, respetará el área segura del dispositivo y no generará desbordamiento horizontal en tamaños móviles.
 
 ## Requisitos no funcionales
 
@@ -63,6 +64,8 @@ El formulario de contacto debe impedir envíos automatizados, proteger los datos
 - Lint, formato, tests y build terminan correctamente.
 - La configuración de producción no expone credenciales privadas ni secretos al cliente.
 - Los enlaces de contacto por WhatsApp usan un número internacional configurado por entorno y prefieren un mensaje inicial que la persona puede revisar antes de enviarlo.
+- El ícono se adapta al espacio disponible sin perder su área interactiva mínima, accesibilidad ni visibilidad en pantallas pequeñas.
+- Los accesos flotantes a WhatsApp y Vector Uno permanecen en esquinas opuestas y disponibles durante el uso del chat.
 
 ## Dudas abiertas
 

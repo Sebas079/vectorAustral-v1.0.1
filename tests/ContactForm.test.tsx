@@ -143,7 +143,9 @@ describe("ContactForm", () => {
         "Tuvimos un problema, volvé a intentar más tarde.",
       ),
     );
-    expect(screen.getByRole("link", { name: "WhatsApp" })).toHaveAttribute(
+    expect(
+      screen.getByRole("link", { name: "Abrir chat de WhatsApp" }),
+    ).toHaveAttribute(
       "href",
       "https://wa.me/5491169975989?text=Hola%2C+quiero+hacer+una+consulta+sobre+sus+servicios.",
     );

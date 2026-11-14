@@ -3,6 +3,7 @@ import ContactForm from "@/components/ContactForm";
 import CompanyIntro from "@/components/CompanyIntro";
 import DemoVideo from "@/components/DemoVideo";
 import Footer from "@/components/Footer";
+import FloatingWhatsApp from "@/components/FloatingWhatsApp";
 import Hero from "@/components/Hero";
 import Navbar from "@/components/Navbar";
 import ProcessSection from "@/components/ProcessSection";
@@ -21,6 +22,7 @@ export default function Home() {
       <DemoVideo />
       <ContactForm />
       <Footer />
+      <FloatingWhatsApp />
       <ChatWidget />
     </main>
   );

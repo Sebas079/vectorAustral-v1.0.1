@@ -4,6 +4,7 @@ import { type FormEvent, useState } from "react";
 import { z } from "zod";
 
 import TurnstileWidget from "@/components/TurnstileWidget";
+import WhatsAppLink from "@/components/WhatsAppLink";
 import { getWhatsAppHref } from "@/lib/contact/whatsapp";
 import {
   leadLookupSchema,
@@ -49,20 +50,11 @@ function ContactAlternatives() {
   const whatsappHref = getWhatsAppHref();
 
   return (
-    <p>
-      También podés escribirnos por{" "}
-      {whatsappHref ? (
-        <a
-          className="font-semibold underline"
-          href={whatsappHref}
-          target="_blank"
-          rel="noreferrer"
-        >
-          WhatsApp
-        </a>
-      ) : null}{" "}
+    <div className="flex flex-wrap items-center gap-2">
+      <span>También podés escribirnos por</span>
+      {whatsappHref ? <WhatsAppLink href={whatsappHref} /> : null}
       {contactEmail ? (
-        <>
+        <span className="flex items-center gap-1">
           o por{" "}
           <a
             className="font-semibold underline"
@@ -70,10 +62,10 @@ function ContactAlternatives() {
           >
             email
           </a>
-        </>
+        </span>
       ) : null}
-      .
-    </p>
+      <span>.</span>
+    </div>
   );
 }
 
