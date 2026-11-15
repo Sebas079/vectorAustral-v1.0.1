@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import ContactForm from "../components/ContactForm";
 
@@ -32,64 +32,26 @@ describe("ContactForm", () => {
     fireEvent.change(screen.getByLabelText("Nombre"), {
       target: { value: "Ana Gómez" },
     });
-    fireEvent.change(screen.getByLabelText("Teléfono"), {
-      target: { value: "+54 9 11 5555-1234" },
-    });
-    fireEvent.change(screen.getByLabelText("Email"), {
+    fireEvent.change(screen.getByLabelText("WhatsApp o email"), {
       target: { value: "ana@example.com" },
     });
-    fireEvent.change(screen.getByLabelText("¿Qué necesitás mejorar?"), {
+    fireEvent.change(screen.getByLabelText("¿Qué necesitás resolver?"), {
       target: { value: "Automatizar consultas." },
     });
   }
 
-  it("renders the four lead fields and requires a real verification token", () => {
+  it("renders three lead fields and requires human verification", () => {
     render(<ContactForm />);
 
     expect(screen.getByLabelText("Nombre")).toBeInTheDocument();
-    expect(screen.getByLabelText("Teléfono")).toBeInTheDocument();
-    expect(screen.getByLabelText("Email")).toBeInTheDocument();
+    expect(screen.getByLabelText("WhatsApp o email")).toBeInTheDocument();
     expect(
-      screen.getByLabelText("¿Qué necesitás mejorar?"),
+      screen.getByLabelText("¿Qué necesitás resolver?"),
     ).toBeInTheDocument();
-    fireEvent.click(
-      screen.getByRole("button", { name: /solicitar diagnóstico/i }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /enviar consulta/i }));
     expect(
       screen.getByText("Completá la verificación humana."),
     ).toBeInTheDocument();
-  });
-
-  it("looks up an existing lead only after verification and prefills its name", async () => {
-    const fetchMock = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(
-        Response.json({ match: true, fullName: "Ana Gómez" }),
-      );
-    render(<ContactForm />);
-    fireEvent.change(screen.getByLabelText("Teléfono"), {
-      target: { value: "+54 9 11 5555-1234" },
-    });
-    fireEvent.change(screen.getByLabelText("Email"), {
-      target: { value: "ana@example.com" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Verificar persona" }));
-    fireEvent.click(screen.getByRole("button", { name: /buscar mis datos/i }));
-
-    await waitFor(() =>
-      expect(screen.getByLabelText("Nombre")).toHaveValue("Ana Gómez"),
-    );
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/leads/lookup",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          email: "ana@example.com",
-          phone: "+54 9 11 5555-1234",
-          captchaToken: "turnstile-token",
-        }),
-      }),
-    );
   });
 
   it("submits a valid lead through the server API and shows confirmation", async () => {
@@ -99,9 +61,7 @@ describe("ContactForm", () => {
     render(<ContactForm />);
     enterValidContact();
     fireEvent.click(screen.getByRole("button", { name: "Verificar persona" }));
-    fireEvent.click(
-      screen.getByRole("button", { name: /solicitar diagnóstico/i }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /enviar consulta/i }));
 
     await waitFor(() =>
       expect(
@@ -116,13 +76,39 @@ describe("ContactForm", () => {
         method: "POST",
         body: JSON.stringify({
           fullName: "Ana Gómez",
-          phone: "+54 9 11 5555-1234",
-          email: "ana@example.com",
+          contact: "ana@example.com",
           reason: "Automatizar consultas.",
           captchaToken: "turnstile-token",
           honeypot: "",
         }),
       }),
+    );
+  });
+
+  it("submits a phone number as the single contact value", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(Response.json({ id: "lead-1" }));
+    render(<ContactForm />);
+    fireEvent.change(screen.getByLabelText("Nombre"), {
+      target: { value: "Ana Gómez" },
+    });
+    fireEvent.change(screen.getByLabelText("WhatsApp o email"), {
+      target: { value: "+54 9 11 5555-1234" },
+    });
+    fireEvent.change(screen.getByLabelText("¿Qué necesitás resolver?"), {
+      target: { value: "Automatizar consultas." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Verificar persona" }));
+    fireEvent.click(screen.getByRole("button", { name: /enviar consulta/i }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/leads",
+        expect.objectContaining({
+          body: expect.stringContaining('"contact":"+54 9 11 5555-1234"'),
+        }),
+      ),
     );
   });
 
@@ -134,9 +120,7 @@ describe("ContactForm", () => {
     render(<ContactForm />);
     enterValidContact();
     fireEvent.click(screen.getByRole("button", { name: "Verificar persona" }));
-    fireEvent.click(
-      screen.getByRole("button", { name: /solicitar diagnóstico/i }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /enviar consulta/i }));
 
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent(
@@ -151,14 +135,41 @@ describe("ContactForm", () => {
     );
   });
 
-  it("offers a retry when verification expires", () => {
+  it("shows email and WhatsApp actions when Turnstile is unavailable", () => {
+    render(<ContactForm />);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Simular error de verificación" }),
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "No pudimos cargar o validar la verificación humana.",
+    );
+    expect(
+      screen.getByRole("button", { name: "Volver a verificar" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Escribir por email" }),
+    ).toHaveAttribute("href", "mailto:contacto@vectoraustral.com");
+    expect(
+      screen.getByRole("link", { name: "Contactar por WhatsApp" }),
+    ).toHaveAttribute("href", "https://wa.me/5491100000000");
+
+    fireEvent.click(screen.getByRole("button", { name: "Volver a verificar" }));
+
+    expect(
+      screen.queryByRole("link", { name: "Escribir por email" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps WhatsApp fallback visible but disabled when no number is configured", () => {
+    vi.stubEnv("NEXT_PUBLIC_WHATSAPP_NUMBER", "");
     render(<ContactForm />);
     fireEvent.click(
       screen.getByRole("button", { name: "Simular error de verificación" }),
     );
 
     expect(
-      screen.getByRole("button", { name: "Volver a verificar" }),
-    ).toBeInTheDocument();
+      screen.getByRole("button", { name: "WhatsApp no disponible" }),
+    ).toBeDisabled();
   });
 });

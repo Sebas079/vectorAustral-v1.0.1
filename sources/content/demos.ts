@@ -1,8 +1,8 @@
 export const institutionalDemo = {
-  eyebrow: "Demo institucional",
-  title: "Vector Uno te muestra cómo pensamos las soluciones.",
+  eyebrow: "Asistente virtual",
+  title: "Preguntale a Vector Uno por nuestros servicios.",
   description:
-    "Una mirada breve al enfoque de Vector Austral para conectar estrategia, diseño y tecnología.",
+    "Mirá una conversación de ejemplo sobre desarrollo web, automatización y cómo trabajamos.",
   videoSrc: "/assets/demos/vector-uno/VectorUnoDemo.mp4",
   posterSrc: "/assets/demos/vector-uno/vector-uno-demo-poster.svg",
   sourceFile: "sources/demos/vector-uno/final/VectorUnoDemo.mp4",

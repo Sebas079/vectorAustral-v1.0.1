@@ -1,7 +1,8 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { type FormEvent, useState } from "react";
 import Image from "next/image";
+import { z } from "zod";
 
 import { answerBot } from "@/lib/bot/botEngine";
 
@@ -15,37 +16,70 @@ const initialMessage: ChatMessage = {
   id: 1,
   role: "assistant",
   content:
-    "Soy Vector Uno. Puedo contarte sobre desarrollo web, automatizaciones con n8n y el Diagnóstico Inicial.",
+    "Soy Vector Uno. Puedo contarte sobre desarrollo web, automatizaciones con n8n, el Diagnóstico Inicial y nuestro proceso de trabajo.",
 };
+
+const unavailableMessage =
+  "Ahora no puedo consultar mi base de respuestas. Volvé a intentarlo en unos minutos o hablá con un especialista.";
 
 export default function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
+  const [isSending, setIsSending] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([initialMessage]);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const question = input.trim();
 
-    if (!question) {
+    if (!question || isSending) {
       return;
     }
 
-    // El motor conserva respuestas deterministas y evita presupuestos automáticos.
-    const response = answerBot(question);
     const userMessage: ChatMessage = {
       id: Date.now(),
       role: "user",
       content: question,
     };
-    const assistantMessage: ChatMessage = {
-      id: Date.now() + 1,
-      role: "assistant",
-      content: response.message,
-    };
-
-    setMessages((current) => [...current, userMessage, assistantMessage]);
+    setMessages((current) => [...current, userMessage]);
     setInput("");
+    setIsSending(true);
+
+    let responseMessage: string;
+    try {
+      const response = await fetch("/api/vectoruno/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: question }),
+      });
+      if (!response.ok) {
+        throw new Error("Vector Uno no pudo consultar su información.");
+      }
+
+      const payload: unknown = await response.json();
+      const parsedPayload = z
+        .object({ message: z.string().min(1) })
+        .safeParse(payload);
+      if (!parsedPayload.success) {
+        throw new Error("Vector Uno recibió una respuesta inválida.");
+      }
+      responseMessage = parsedPayload.data.message;
+    } catch {
+      const fallback = answerBot(question, []);
+      responseMessage =
+        fallback.intent === "pricing" ? fallback.message : unavailableMessage;
+    } finally {
+      setIsSending(false);
+    }
+
+    setMessages((current) => [
+      ...current,
+      {
+        id: Date.now() + 1,
+        role: "assistant",
+        content: responseMessage,
+      },
+    ]);
   };
 
   return (
@@ -75,6 +109,7 @@ export default function ChatWidget() {
 
           <div
             aria-live="polite"
+            aria-busy={isSending}
             className="flex max-h-80 flex-col gap-3 overflow-y-auto px-5 py-4"
           >
             {messages.map((message) => (
@@ -89,6 +124,11 @@ export default function ChatWidget() {
                 {message.content}
               </p>
             ))}
+            {isSending ? (
+              <p className="self-start text-xs text-slate-400">
+                Vector Uno está consultando su información…
+              </p>
+            ) : null}
           </div>
 
           <a
@@ -109,15 +149,17 @@ export default function ChatWidget() {
             <input
               id="chat-input"
               value={input}
+              disabled={isSending}
               onChange={(event) => setInput(event.target.value)}
               placeholder="Escribí tu consulta"
               className="min-w-0 flex-1 rounded-lg border border-white/15 bg-navy px-3 py-2 text-sm text-white outline-none focus:border-volt focus:ring-2 focus:ring-volt/30"
             />
             <button
               type="submit"
+              disabled={isSending}
               className="rounded-lg bg-volt px-3 py-2 text-sm font-semibold text-navy hover:bg-cyan-200 focus:outline-none focus:ring-2 focus:ring-volt"
             >
-              Enviar
+              {isSending ? "Consultando…" : "Enviar"}
             </button>
           </form>
         </section>

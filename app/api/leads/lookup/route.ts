@@ -48,7 +48,7 @@ export async function POST(request: Request) {
       );
     }
 
-    console.error("Lead lookup failed:", error);
-    return Response.json({ error: "lookup_failed" }, { status: 500 });
+    console.error("Lead lookup failed.");
+    return Response.json({ error: "lookup_failed" }, { status: 503 });
   }
 }

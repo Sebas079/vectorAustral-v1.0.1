@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Vector Austral — Soluciones web, apps y automatización",
+  title: "Vector Austral — Desarrollo web y automatización",
   description:
-    "Vector Austral: desarrollo web moderno, apps Android y automatizaciones con n8n.",
+    "Sitios web rápidos y automatizaciones para reducir tareas manuales y mejorar la atención a tus clientes.",
 };
 
 export default function RootLayout({

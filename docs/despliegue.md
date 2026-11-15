@@ -16,6 +16,63 @@ La estrategia inicial prioriza bajo costo, trazabilidad y simplicidad operativa.
 Las releases versionadas y los despliegues sin interrupción quedan reservados
 para Specs 2 y 3.
 
+## Etapa provisoria: Vercel, Firestore y Google Sheets
+
+Mientras el VPS y n8n no estén disponibles, los formularios guardan leads en
+Firestore y Vector Uno consulta Google Sheets para responder preguntas. Los
+leads ya registrados en Firestore se reutilizan. Los registros históricos que
+se hayan guardado en la pestaña `Leads` de Google Sheets quedan allí y no se
+migran automáticamente. Firestore también mantiene el límite de envíos por IP
+de 10 segundos.
+
+### Preparar la hoja
+
+Creá una hoja de cálculo con una pestaña `Knowledge` y estos encabezados en la
+primera fila, respetando el orden:
+
+```text
+Knowledge: id | title | keywords | response | active
+```
+
+En `Knowledge`, agregá una fila por respuesta. Separá las palabras clave con
+comas, usá `TRUE` para habilitar la respuesta y `FALSE` para deshabilitarla.
+Vector Uno consulta esta pestaña al responder cada pregunta, por lo que los
+cambios se aplican sin volver a desplegar el sitio. El contenido de esta
+pestaña debe ser apto para respuestas públicas; no cargues información privada.
+
+Como punto de partida, cargá estas cuatro respuestas:
+
+| id         | title                  | keywords                                                                      | response                                                                                                                                                                                                                         | active |
+| ---------- | ---------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| web        | Desarrollo web         | web, sitio, plataforma, página, pagina, escalable                             | Desarrollamos plataformas y sitios web rápidos, seguros y preparados para escalar. Enfocamos cada desarrollo en la velocidad, la seguridad y una experiencia optimizada para convertir tráfico cualificado en oportunidades B2B. | TRUE   |
+| automation | Automatización con n8n | n8n, automatización, automatizacion, flujo, crm, erp, api                     | Conectamos CRM, ERP, bases de datos y APIs mediante flujos robustos en n8n. Las automatizaciones pueden ejecutarse en infraestructura propia o gestionada, con control de datos y estabilidad operacional.                       | TRUE   |
+| diagnostic | Diagnóstico Inicial    | diagnóstico, diagnostico, auditoría, auditoria, viabilidad, roi, ineficiencia | El Diagnóstico Inicial evalúa procesos críticos, arquitectura web y viabilidad de integración para priorizar oportunidades de impacto. Es el primer paso para definir una hoja de ruta técnica.                                  | TRUE   |
+| process    | Proceso de trabajo     | proceso, cómo, como, trabajo, implementación, implementacion                  | Comenzamos entendiendo tu operación y su arquitectura actual. Luego identificamos oportunidades, evaluamos viabilidad y definimos una hoja de ruta de implementación sostenible.                                                 | TRUE   |
+
+### Dar acceso a Vercel
+
+1. En Google Cloud, habilitá Google Sheets API y creá una cuenta de servicio
+   dedicada para leer el conocimiento de Vector Uno.
+2. Compartí la hoja con la cuenta propietaria y con el email de la cuenta de
+   servicio, otorgando a esta última permiso de lectura.
+3. En Vercel, configurá `GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON` con el JSON de la
+   cuenta de servicio y `GOOGLE_SHEETS_SPREADSHEET_ID` con el ID de la hoja.
+4. Configurá `FIREBASE_SERVICE_ACCOUNT_JSON` con la cuenta de servicio que
+   tiene acceso a Firestore. Esta credencial también es necesaria para guardar
+   y consultar leads.
+5. Marcá las credenciales como sensibles y seleccioná los entornos requeridos.
+   No uses el prefijo `NEXT_PUBLIC_` para ninguna de estas variables.
+6. Configurá el runtime del proyecto para usar Node.js 22 o superior.
+7. Volvé a desplegar después de guardar las variables.
+
+Para desarrollo local, guardá las mismas variables en `.env.local`, que está
+excluido de Git. No pegues claves privadas en el repositorio ni en mensajes.
+
+Los leads se almacenan en la colección `leads` de Firestore y la aplicación
+reutiliza los registros existentes. Google Sheets se usa solo para el
+conocimiento editable de Vector Uno. Esta arquitectura es provisoria y se
+revisará al migrar al VPS y n8n.
+
 ## Arquitectura de producción
 
 ```text
@@ -100,6 +157,8 @@ Variables esperadas:
 
 ```text
 FIREBASE_SERVICE_ACCOUNT_JSON
+GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON
+GOOGLE_SHEETS_SPREADSHEET_ID
 NEXT_PUBLIC_TURNSTILE_SITE_KEY
 TURNSTILE_SECRET_KEY
 TURNSTILE_HOSTNAME

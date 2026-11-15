@@ -1,39 +1,22 @@
 // El copy vive separado de la presentación para facilitar cambios editoriales.
 export const landingContent = {
   hero: {
-    eyebrow: "Vector Austral",
-    title:
-      "Transformamos procesos manuales e infraestructura web en activos digitales de alto rendimiento.",
+    eyebrow: "Desarrollo web y automatización",
+    title: "Menos tareas manuales. Más consultas desde tu web.",
     description:
-      "Diseñamos e implementamos sistemas web escalables y automatizaciones avanzadas con n8n que reducen costes operacionales, eliminan cuellos de botella y maximizan el ROI de tu empresa.",
-    cta: "Solicitar Diagnóstico Inicial",
-    demoCta: "Ver demo institucional",
-    support:
-      "Sin compromiso. Analizamos la viabilidad técnica y el impacto financiero de tu proyecto.",
-    highlights: [
-      {
-        title: "Experiencia digital",
-        description: "Interfaces claras, rápidas y pensadas para convertir.",
-      },
-      {
-        title: "Automatización",
-        description: "Flujos que eliminan trabajo repetitivo y ahorran tiempo.",
-      },
-      {
-        title: "Escalabilidad",
-        description: "Sistemas listos para crecer con tu empresa.",
-      },
-    ],
+      "Automatizamos la atención y conectamos tus herramientas para que respondas a tiempo. Además, creamos sitios rápidos que ayudan a convertir visitas en consultas.",
+    cta: "Hablar por WhatsApp",
+    secondaryCta: "Ver ejemplos",
+    support: "Contanos qué querés resolver. Te responde una persona.",
   },
   diagnostic: {
-    title:
-      "El primer paso no es venderte un sistema. Es entender si realmente lo necesitas.",
+    title: "Contanos qué parte de tu trabajo querés simplificar.",
     description:
-      "Antes de escribir una sola línea de código o desplegar un flujo en n8n, evaluamos la arquitectura técnica y operacional de tu negocio.",
+      "Revisamos tu necesidad y te contamos qué solución tiene sentido para tu negocio.",
   },
   closing: {
-    title: "¿Listo para optimizar la operativa de tu empresa?",
+    title: "¿Qué tarea te gustaría dejar de hacer a mano?",
     description:
-      "Agenda tu sesión de Diagnóstico Inicial con nuestro equipo estratégico. Analizaremos tu infraestructura actual y te entregaremos una hoja de ruta clara para automatizar y escalar.",
+      "Escribinos por WhatsApp o dejanos tu contacto y el tema que querés resolver.",
   },
 } as const;

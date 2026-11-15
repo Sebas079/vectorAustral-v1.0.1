@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { getWhatsAppHref } from "@/lib/contact";
 
 import WhatsAppLink from "@/components/WhatsAppLink";
 import { getWhatsAppHref } from "@/lib/contact/whatsapp";
@@ -26,7 +27,7 @@ export default function Footer() {
             />
           </a>
           <p className="mt-2 text-sm">
-            Ingeniería digital para operaciones que necesitan escalar.
+            Desarrollo web y automatización para negocios de la región.
           </p>
         </div>
 

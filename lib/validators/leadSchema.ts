@@ -4,23 +4,32 @@ const phonePattern = /^\+?[0-9][0-9\s().-]{7,18}[0-9]$/;
 
 export const leadSchema = z.strictObject({
   fullName: z.string().trim().min(1, "El nombre es obligatorio."),
-  phone: z
+  contact: z
     .string()
     .trim()
-    .min(1, "El teléfono es obligatorio.")
+    .min(1, "El dato de contacto es obligatorio.")
+    .max(254, "El dato de contacto es demasiado largo.")
     .refine(
-      (value) => value === "" || phonePattern.test(value),
-      "Ingresá un teléfono válido.",
+      (value) =>
+        value.length === 0 ||
+        z.email().safeParse(value).success ||
+        phonePattern.test(value),
+      "Ingresá un email o un número de WhatsApp válido.",
     ),
-  email: z
+  reason: z.string().trim().min(1, "Contanos qué necesitás resolver."),
+});
+
+export const leadSubmissionSchema = leadSchema.extend({
+  captchaToken: z
     .string()
     .trim()
-    .min(1, "El email es obligatorio.")
-    .refine(
-      (value) => value === "" || z.email().safeParse(value).success,
-      "Ingresá un email válido.",
-    ),
-  reason: z.string().trim().min(1, "El motivo es obligatorio."),
+    .min(1, "Completá la verificación humana.")
+    .max(2048),
+  honeypot: z
+    .string()
+    .trim()
+    .max(0, "No se pudo validar el envío. Volvé a intentar.")
+    .optional(),
 });
 
 export const leadLookupSchema = z.strictObject({
@@ -37,17 +46,23 @@ export const leadLookupSchema = z.strictObject({
     .max(2048),
 });
 
-export const leadSubmissionSchema = leadSchema.extend({
-  captchaToken: z
-    .string()
-    .trim()
-    .min(1, "Completá la verificación humana.")
-    .max(2048),
-  honeypot: z
-    .string()
-    .trim()
-    .max(0, "No se pudo validar el envío. Volvé a intentar.")
-    .optional(),
-});
+export type LeadFormInput = z.infer<typeof leadSchema>;
 
-export type LeadInput = z.infer<typeof leadSchema>;
+export interface LeadInput {
+  fullName: string;
+  email: string;
+  phone: string;
+  reason: string;
+}
+
+export function normalizeLeadInput(input: LeadFormInput): LeadInput {
+  const contact = input.contact.trim();
+  const isEmail = z.email().safeParse(contact).success;
+
+  return {
+    fullName: input.fullName.trim(),
+    email: isEmail ? contact : "",
+    phone: isEmail ? "" : contact,
+    reason: input.reason.trim(),
+  };
+}

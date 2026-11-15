@@ -1,62 +1,59 @@
-import { differentiators, servicesContent } from "@/sources/content/services";
-import { landingContent } from "@/sources/content/landing";
+import { servicesContent } from "@/sources/content/services";
 
 export default function ServicesShowroom() {
   return (
     <section id="servicios" className="px-6 py-12 text-slate-100 sm:py-16">
       <div className="motion-rise mx-auto max-w-6xl">
         <div className="max-w-3xl">
-          <p className="mb-4 text-sm font-semibold tracking-[0.2em] text-volt">
-            Capacidades
+          <p className="mb-4 text-sm font-semibold text-volt">
+            Ejemplos concretos
           </p>
           <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-5xl">
-            Ingeniería digital pensada para la eficiencia operacional.
+            Así se ve una solución en el trabajo diario.
           </h2>
           <p className="mt-5 max-w-2xl leading-7 text-slate-300">
-            {landingContent.diagnostic.description}
+            No hace falta empezar por una plataforma enorme. Primero vemos dónde
+            se pierde tiempo o se escapan consultas.
           </p>
         </div>
 
-        <div className="mt-10 grid gap-5 lg:grid-cols-2">
-          {servicesContent.map((service) => (
+        <div className="mt-10 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+          {servicesContent.map((service, index) => (
             <article
               key={service.id}
-              className="flex min-h-64 flex-col justify-between rounded-3xl border border-white/10 bg-graphite/55 p-6 shadow-lg shadow-blue-950/10 transition hover:-translate-y-1 hover:border-volt/30 hover:shadow-2xl hover:shadow-cyan-950/20 sm:p-8"
+              className={`flex flex-col justify-between border p-6 sm:p-8 ${
+                index === 0
+                  ? "rounded-3xl border-volt/25 bg-graphite/70"
+                  : "rounded-3xl border-white/10 bg-navy/60"
+              }`}
             >
               <div>
-                <p className="text-sm font-medium tracking-wide text-volt">
-                  {service.outcome}
+                <p className="text-sm font-medium text-volt">
+                  {service.eyebrow}
                 </p>
-                <h3 className="mt-4 text-2xl font-semibold leading-tight text-white">
+                <h3 className="mt-4 max-w-xl text-2xl font-semibold leading-tight text-white sm:text-3xl">
                   {service.title}
                 </h3>
-                <p className="mt-5 leading-7 text-slate-300">
+                <p className="mt-4 max-w-xl leading-7 text-slate-300">
                   {service.description}
                 </p>
               </div>
-              <span className="mt-6 text-sm text-slate-500">
-                Solución pensada para crecer
-              </span>
+              <div className="mt-8 flex flex-wrap items-center gap-2">
+                {service.steps.map((step, stepIndex) => (
+                  <div key={step} className="flex items-center gap-2">
+                    <span className="rounded-full border border-white/15 px-3 py-2 text-sm text-slate-200">
+                      {step}
+                    </span>
+                    {stepIndex < service.steps.length - 1 ? (
+                      <span aria-hidden="true" className="text-volt">
+                        →
+                      </span>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
             </article>
           ))}
-        </div>
-
-        <div className="mt-20 border-t border-white/10 pt-10">
-          <h2 className="text-3xl font-semibold text-white">
-            Arquitectura estable. Resultados medibles.
-          </h2>
-          <div className="mt-8 grid gap-8 md:grid-cols-3">
-            {differentiators.map((item) => (
-              <article key={item.title}>
-                <h3 className="text-lg font-semibold text-white">
-                  {item.title}
-                </h3>
-                <p className="mt-3 leading-7 text-slate-400">
-                  {item.description}
-                </p>
-              </article>
-            ))}
-          </div>
         </div>
       </div>
     </section>

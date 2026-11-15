@@ -78,12 +78,19 @@ function createFirestoreLeadStore(db: Firestore): LeadStore {
 
     async findByEmailOrPhone(email, phone) {
       const [emailSnapshot, phoneSnapshot] = await Promise.all([
-        leadsCollection.where("email", "==", email).limit(1).get(),
-        leadsCollection.where("phone", "==", phone).limit(1).get(),
+        email
+          ? leadsCollection.where("email", "==", email).limit(1).get()
+          : Promise.resolve(null),
+        phone
+          ? leadsCollection.where("phone", "==", phone).limit(1).get()
+          : Promise.resolve(null),
       ]);
       const matches = new Map<string, LeadDocument>();
 
       for (const snapshot of [emailSnapshot, phoneSnapshot]) {
+        if (!snapshot) {
+          continue;
+        }
         for (const lead of snapshot.docs) {
           matches.set(lead.id, { id: lead.id, ...lead.data() } as LeadDocument);
         }
@@ -138,8 +145,8 @@ export async function saveLead(
   const updatedLead: LeadDocument = {
     ...existingLead,
     fullName: input.fullName,
-    email: input.email,
-    phone: input.phone,
+    email: input.email || existingLead.email,
+    phone: input.phone || existingLead.phone,
     consultationHistory: [...existingLead.consultationHistory, consultation],
     updatedAt: timestamp,
   };
