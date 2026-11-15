@@ -1,6 +1,9 @@
 import Image from "next/image";
 import { getWhatsAppHref } from "@/lib/contact";
 
+import WhatsAppLink from "@/components/WhatsAppLink";
+import { getWhatsAppHref } from "@/lib/contact/whatsapp";
+
 const contactEmail = process.env.NEXT_PUBLIC_CONTACT_EMAIL;
 
 export default function Footer() {
@@ -58,14 +61,10 @@ export default function Footer() {
             ) : null}
             {whatsappHref ? (
               <li>
-                <a
+                <WhatsAppLink
                   href={whatsappHref}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="transition hover:text-volt focus:outline-none focus:ring-2 focus:ring-volt"
-                >
-                  WhatsApp
-                </a>
+                  className="focus-visible:ring-offset-navy"
+                />
               </li>
             ) : null}
           </ul>

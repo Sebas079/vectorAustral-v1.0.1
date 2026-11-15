@@ -4,8 +4,8 @@ import { type FormEvent, useState } from "react";
 import { z } from "zod";
 
 import TurnstileWidget from "@/components/TurnstileWidget";
-import { getWhatsAppHref } from "@/lib/contact";
-import { landingContent } from "@/sources/content/landing";
+import WhatsAppLink from "@/components/WhatsAppLink";
+import { getWhatsAppHref } from "@/lib/contact/whatsapp";
 import {
   leadSubmissionSchema,
   type LeadFormInput,
@@ -20,6 +20,8 @@ const initialValues: FormValues = {
   contact: "",
   reason: "",
 };
+
+const contactEmail = process.env.NEXT_PUBLIC_CONTACT_EMAIL;
 
 async function readResponse(response: Response): Promise<unknown> {
   const payload: unknown = await response.json();
@@ -42,36 +44,23 @@ async function readApiResponse(response: Response) {
 
 function ContactAlternatives() {
   const whatsappHref = getWhatsAppHref();
-  const contactEmail =
-    process.env.NEXT_PUBLIC_CONTACT_EMAIL || "contacto@vectoraustral.com";
 
   return (
-    <div className="grid gap-3 pt-2 sm:grid-cols-2">
-      <a
-        className="inline-flex min-h-11 items-center justify-center rounded-lg border border-white/20 px-4 py-2 text-center font-semibold text-white transition hover:border-volt hover:text-volt focus:outline-none focus:ring-2 focus:ring-volt"
-        href={`mailto:${contactEmail}`}
-      >
-        Escribir por email
-      </a>
-      {whatsappHref ? (
-        <a
-          className="inline-flex min-h-11 items-center justify-center rounded-lg bg-emerald-500 px-4 py-2 text-center font-semibold text-emerald-950 transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-300"
-          href={whatsappHref}
-          target="_blank"
-          rel="noreferrer"
-        >
-          Contactar por WhatsApp
-        </a>
-      ) : (
-        <button
-          type="button"
-          disabled
-          className="inline-flex min-h-11 items-center justify-center rounded-lg border border-white/20 px-4 py-2 text-center font-semibold text-white transition hover:border-volt hover:text-volt focus:outline-none focus:ring-2 focus:ring-volt"
-          title="Configurá NEXT_PUBLIC_WHATSAPP_NUMBER en Vercel para habilitar este canal."
-        >
-          WhatsApp no disponible
-        </button>
-      )}
+    <div className="flex flex-wrap items-center gap-2">
+      <span>También podés escribirnos por</span>
+      {whatsappHref ? <WhatsAppLink href={whatsappHref} /> : null}
+      {contactEmail ? (
+        <span className="flex items-center gap-1">
+          o por{" "}
+          <a
+            className="font-semibold underline"
+            href={`mailto:${contactEmail}`}
+          >
+            email
+          </a>
+        </span>
+      ) : null}
+      <span>.</span>
     </div>
   );
 }
