@@ -300,6 +300,26 @@ Después de cada despliegue se debe verificar:
 - Firebase recibe leads en el proyecto esperado;
 - PM2 informa el proceso `vector-austral` como `online`.
 
+### Verificación SEO
+
+Después de publicar cambios de SEO:
+
+1. Comprobá que `https://vectoraustral.com.ar/robots.txt` permita rastrear la
+   landing y apunte al sitemap.
+2. Comprobá que `https://vectoraustral.com.ar/sitemap.xml` responda correctamente
+   e incluya solo URLs públicas canónicas.
+3. Revisá en el HTML publicado el título, la descripción, la URL canónica, los
+   metadatos Open Graph, el idioma `es-AR` y un único encabezado H1.
+4. En Google Search Console, verificá la propiedad del dominio
+   `vectoraustral.com.ar` y enviá `https://vectoraustral.com.ar/sitemap.xml`.
+5. Usá la inspección de URL para comprobar la URL principal publicada y, si
+   corresponde, solicitá su indexación. Revisá luego los informes de indexación
+   y rendimiento para validar consultas reales.
+
+La aparición en resultados y la evolución del tráfico dependen del rastreo,
+indexación y evaluación de los buscadores; estos pasos no garantizan posiciones
+ni plazos.
+
 Comandos útiles en el VPS:
 
 ```bash
@@ -307,6 +327,8 @@ pm2 status
 pm2 logs vector-austral --lines 100
 curl -I https://dominio-real
 curl -I https://dominio-real/assets/demos/vector-uno/VectorUnoDemo.mp4
+curl -I https://vectoraustral.com.ar/robots.txt
+curl -I https://vectoraustral.com.ar/sitemap.xml
 ```
 
 ## Rollback operativo del MVP
