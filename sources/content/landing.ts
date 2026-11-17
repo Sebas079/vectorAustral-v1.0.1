@@ -1,10 +1,11 @@
 // El copy vive separado de la presentación para facilitar cambios editoriales.
 export const landingContent = {
   hero: {
-    eyebrow: "Desarrollo web y automatización",
-    title: "Menos tareas manuales. Más consultas desde tu web.",
+    eyebrow: "Automatizaciones con n8n y desarrollo web en Argentina",
+    title:
+      "Automatizaciones con n8n para simplificar el trabajo de tu negocio.",
     description:
-      "Automatizamos la atención y conectamos tus herramientas para que respondas a tiempo. Además, creamos sitios rápidos que ayudan a convertir visitas en consultas.",
+      "Conectamos WhatsApp, planillas y CRM con automatizaciones a medida en n8n para reducir tareas manuales y responder a tiempo. También desarrollamos sitios web rápidos para negocios en Argentina.",
     cta: "Hablar por WhatsApp",
     secondaryCta: "Ver ejemplos",
     support: "Contanos qué querés resolver. Te responde una persona.",
