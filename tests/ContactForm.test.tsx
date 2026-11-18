@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import ContactForm from "../components/ContactForm";
 
@@ -135,7 +135,9 @@ describe("ContactForm", () => {
     );
   });
 
-  it("shows email and WhatsApp actions when Turnstile is unavailable", () => {
+  it("shows configured email and WhatsApp actions when Turnstile is unavailable", () => {
+    vi.stubEnv("NEXT_PUBLIC_CONTACT_EMAIL", "contacto@vectoraustral.com");
+    vi.stubEnv("NEXT_PUBLIC_WHATSAPP_NUMBER", "+5491100000000");
     render(<ContactForm />);
     fireEvent.click(
       screen.getByRole("button", { name: "Simular error de verificación" }),
@@ -147,29 +149,38 @@ describe("ContactForm", () => {
     expect(
       screen.getByRole("button", { name: "Volver a verificar" }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "email" })).toHaveAttribute(
+      "href",
+      "mailto:contacto@vectoraustral.com",
+    );
     expect(
-      screen.getByRole("link", { name: "Escribir por email" }),
-    ).toHaveAttribute("href", "mailto:contacto@vectoraustral.com");
-    expect(
-      screen.getByRole("link", { name: "Contactar por WhatsApp" }),
-    ).toHaveAttribute("href", "https://wa.me/5491100000000");
+      screen.getByRole("link", { name: "Abrir chat de WhatsApp" }),
+    ).toHaveAttribute(
+      "href",
+      "https://wa.me/5491100000000?text=Hola%2C+quiero+hacer+una+consulta+sobre+sus+servicios.",
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Volver a verificar" }));
 
     expect(
-      screen.queryByRole("link", { name: "Escribir por email" }),
+      screen.queryByRole("link", { name: "email" }),
     ).not.toBeInTheDocument();
   });
 
-  it("keeps WhatsApp fallback visible but disabled when no number is configured", () => {
+  it("keeps email available without showing an invalid WhatsApp link", () => {
+    vi.stubEnv("NEXT_PUBLIC_CONTACT_EMAIL", "contacto@vectoraustral.com");
     vi.stubEnv("NEXT_PUBLIC_WHATSAPP_NUMBER", "");
     render(<ContactForm />);
     fireEvent.click(
       screen.getByRole("button", { name: "Simular error de verificación" }),
     );
 
+    expect(screen.getByRole("link", { name: "email" })).toHaveAttribute(
+      "href",
+      "mailto:contacto@vectoraustral.com",
+    );
     expect(
-      screen.getByRole("button", { name: "WhatsApp no disponible" }),
-    ).toBeDisabled();
+      screen.queryByRole("link", { name: "Abrir chat de WhatsApp" }),
+    ).not.toBeInTheDocument();
   });
 });

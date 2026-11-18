@@ -225,3 +225,18 @@ Cada tarea usa checkboxes por paso y condición verificable "Hecho cuando".
   - Bloqueo restante:
     - La elección del proveedor de producción y sus secretos de GitHub todavía no
       están configurados; no se agregan credenciales ni se inventa un despliegue.
+
+---
+
+## Fase 4 — Seguridad de dependencias (Spec 006)
+
+- [ ] **T14: Remediar las vulnerabilidades restantes de dependencias de desarrollo**
+  - Requisitos: Spec 006 — RF-1 a RF-8
+  - Estado inicial al 2026-11-18: 18 paquetes afectados por `npm audit`
+    (11 altos y 7 moderados); producción sin vulnerabilidades detectadas.
+  - Pasos y paquetes afectados: ver
+    [task.md de Spec 006](006-remediacion-seguridad-dependencias/task.md).
+  - Hecho cuando:
+    - [ ] `npm audit` no reporta vulnerabilidades conocidas abiertas.
+    - [ ] Pruebas y build pasan, y lint no presenta errores nuevos.
+    - [ ] No se aplican actualizaciones mayores sin autorización explícita.

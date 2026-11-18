@@ -1,5 +1,4 @@
 import Image from "next/image";
-import { getWhatsAppHref } from "@/lib/contact";
 
 import WhatsAppLink from "@/components/WhatsAppLink";
 import { getWhatsAppHref } from "@/lib/contact/whatsapp";

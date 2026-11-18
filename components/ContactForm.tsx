@@ -6,6 +6,7 @@ import { z } from "zod";
 import TurnstileWidget from "@/components/TurnstileWidget";
 import WhatsAppLink from "@/components/WhatsAppLink";
 import { getWhatsAppHref } from "@/lib/contact/whatsapp";
+import { landingContent } from "@/sources/content/landing";
 import {
   leadSubmissionSchema,
   type LeadFormInput,
@@ -20,8 +21,6 @@ const initialValues: FormValues = {
   contact: "",
   reason: "",
 };
-
-const contactEmail = process.env.NEXT_PUBLIC_CONTACT_EMAIL;
 
 async function readResponse(response: Response): Promise<unknown> {
   const payload: unknown = await response.json();
@@ -44,6 +43,7 @@ async function readApiResponse(response: Response) {
 
 function ContactAlternatives() {
   const whatsappHref = getWhatsAppHref();
+  const contactEmail = process.env.NEXT_PUBLIC_CONTACT_EMAIL;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
