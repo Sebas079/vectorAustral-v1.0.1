@@ -87,7 +87,7 @@ en el dominio público.
 
 ## Fase 2 — Preparación de la web
 
-- [ ] **T4: Completar la revisión SEO, navegación y experiencia responsive**
+- [x] **T4: Completar la revisión SEO, navegación y experiencia responsive**
   - Requisitos: RF-6–RF-15, RF-25, RF-26
   - Pasos:
     - [x] Implementar y validar localmente título, descripción, canonical,
@@ -113,6 +113,8 @@ en el dominio público.
     responsable confirmó que el copy visible está aprobado y respaldado. La
     revisión local no dejó hallazgos críticos o altos pendientes; la
     validación del dominio público sigue pendiente para T6.
+  - Ajuste 2026-11-27: el menú móvil ahora se cierra al seleccionar un ancla;
+    el comportamiento cuenta con una prueba automatizada.
 
 - [ ] **T5: Ejecutar preflight de producción**
   - Requisitos: RF-1–RF-5, RF-23, RF-24

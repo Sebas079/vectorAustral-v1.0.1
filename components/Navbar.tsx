@@ -1,5 +1,7 @@
 import Image from "next/image";
 
+import MobileNavigation from "@/components/MobileNavigation";
+
 const navigationItems = [
   { href: "#inicio", label: "Inicio" },
   { href: "#nosotros", label: "Nosotros" },
@@ -49,17 +51,7 @@ export default function Navbar() {
           <NavigationLinks />
         </nav>
 
-        <details className="relative md:hidden">
-          <summary className="cursor-pointer list-none rounded-md border border-white/15 px-3 py-2 text-sm font-medium text-slate-200 transition hover:border-volt hover:text-white focus:outline-none focus:ring-2 focus:ring-volt">
-            Menú
-          </summary>
-          <nav
-            aria-label="Navegación principal móvil"
-            className="absolute right-0 top-12 flex min-w-52 flex-col gap-1 border border-white/10 bg-abyss p-2 shadow-xl shadow-black/30"
-          >
-            <NavigationLinks />
-          </nav>
-        </details>
+        <MobileNavigation items={navigationItems} />
       </div>
     </header>
   );
